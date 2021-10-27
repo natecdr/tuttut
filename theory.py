@@ -15,6 +15,15 @@ class Note:
   def octave(self):
     return self._octave
 
+  def __eq__(self, other):
+    return isinstance(other, Note) and self.degree is other.degree and int(self.octave) == int(other.octave)
+
+  def __hash__(self):
+    return hash((self.degree, self.octave, id(self)))
+
+  def __repr__(self):
+    return self.degree.value + str(self.octave)
+
 class Degree(Enum):
   __order__ = "A Asharp B C Csharp D Dsharp E F Fsharp G Gsharp "
   A = "A"
@@ -46,21 +55,20 @@ class Beat:
     self.ibeat = ibeat
     self.imeasure = imeasure
     self.tab = tab
-    self.notes = -np.ones((tab.nstrings,4), dtype = Note)
-    self.notes2 = -np.ones(4, dtype = Note)
+    self.notes = -np.ones(4, dtype = Note)
 
   def populate(self, notes_to_add, midi, time_signature):
     resolution = midi.resolution
     measure_length = measure_length_ticks(midi, time_signature)
     if len(notes_to_add) > 4:
-      self.notes2 = -np.ones(len(notes_to_add)+1, dtype = Note)
+      self.notes = -np.ones(len(notes_to_add)+1, dtype = Note)
 
-    self.notes2 = [[] for note in self.notes2]
+    self.notes = [[] for note in self.notes]
     
     for note in notes_to_add:
       tick = midi.time_to_tick(note.start) - self.ibeat*resolution - self.imeasure*measure_length
       timing = int(np.ceil(tick/resolution*len(notes_to_add)))
-      self.notes2[timing].append(note)
+      self.notes[timing].append(note)
 
   def __repr__(self):
     res = ""
@@ -96,10 +104,10 @@ class Measure:
       self.beats[ibeat] = beat
 
   def get_all_notes(self):
-    notes = self.beats[0].notes2
+    notes = self.beats[0].notes
     
     for i in range(1, len(self.beats)):
-      notes += self.beats[i].notes2
+      notes += self.beats[i].notes
 
     return notes
 
@@ -124,14 +132,26 @@ class Measure:
   def to_string(self, init_array):
     res = init_array.copy()
     all_notes = self.get_all_notes()
-    for istring in range(self.tab.nstrings):
-      for timing, notes in enumerate(all_notes):
-        if notes: #if notes contains one or more notes at a specific timing
-          res[istring] += str(note_to_fret(self.tab.tuning.strings[istring],midi_note_to_note(notes[0])))
-        else: 
+    for timing, notes in enumerate(all_notes):
+      if notes: #if notes contains one or more notes at a specific timing
+        note_arrays = []
+        for note in notes:
+          note = midi_note_to_note(note)
+          note_arrays.append(get_notes_in_graph(self.tab.graph, note))
+        path_graph = build_path_graph(self.tab.graph, note_arrays)
+        shortest_path = find_shortest_path(path_graph, note_arrays)
+
+        for path_note in shortest_path:
+          string, fret = self.tab.graph.nodes[path_note]["pos"]
+          res[string] += str(fret)
+
+      res = fill_measure_str(res)
+
+      for istring in range(self.tab.nstrings):
           res[istring] += "-"
+      
+    for istring in range(self.tab.nstrings):
       res[istring] += "|"
 
     return res
-
 

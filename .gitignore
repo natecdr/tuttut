@@ -129,5 +129,5 @@ dmypy.json
 .pyre/
 
 #Other
-midis/
-tabs/
+midis/*
+tabs/*

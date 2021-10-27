@@ -1,7 +1,7 @@
 import numpy as np
 from pretty_midi.containers import TimeSignature
 from theory import Measure
-from utils import measure_length_ticks, get_notes_between, get_non_drum
+from utils import measure_length_ticks, get_notes_between, get_non_drum, get_all_possible_notes, distance_between
 import networkx as nx
 
 class Tab:
@@ -13,7 +13,7 @@ class Tab:
     self._nstrings = len(tuning.strings)
     self.measures = []
     self.midi = midi
-    self.graph = self.build_graph(tuning)
+    self.graph = self.build_complete_graph(tuning)
 
   def populate(self):
     for i,time_signature in enumerate(self.time_signatures):
@@ -57,8 +57,22 @@ class Tab:
       for string_notes in notes_str:
         file.write(string_notes + "\n")
     
-  def build_graph(self, tuning):
-    G = nx.generators.classic.complete_graph(25)
+  def build_complete_graph(self, tuning):
+    note_map = get_all_possible_notes(tuning)
+    G = nx.Graph()
+    for istring, string in enumerate(note_map):
+      for inote, note in enumerate(string):
+        G.add_node(note, pos = (istring, inote))
+
+    for node in list(G.nodes(data=True)):
+      for node_to_link in list(G.nodes(data=True)):
+        if not node is node_to_link:
+          if node_to_link[1]['pos'][1] == 0:
+            dst = 0
+          else:
+            dst = distance_between(node[1]['pos'], node_to_link[1]['pos'])
+          G.add_edge(node[0], node_to_link[0], distance = dst)
+
     return G
 
   def __repr__(self):
