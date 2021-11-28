@@ -1,4 +1,4 @@
-from numpy import short
+import numpy as np
 import pretty_midi
 from pretty_midi.utilities import note_name_to_number
 import theory
@@ -74,16 +74,17 @@ def build_path_graph(G, note_arrays):
     for y, possible_note in enumerate(note_array):
       res.add_node(possible_note, pos = (x, y))
 
-  for idx, note_array in enumerate(note_arrays):
+  for idx, note_array in enumerate(note_arrays[:-1]): #Check every array except the last
     for possible_note in note_array:
-      if idx < len(note_arrays)-1:
-        for possible_target_note in note_arrays[idx+1]:
+      for possible_target_note in note_arrays[idx+1]:
+        if (G.nodes[possible_note]["pos"][0] != G.nodes[possible_target_note]["pos"][0]):
           res.add_edge(possible_note, possible_target_note, distance = G[possible_note][possible_target_note]["distance"])
 
   return res 
 
 def find_shortest_path(path_graph, note_arrays):
-  shortest_path = [note_array[0] for note_array in note_arrays]
+  #shortest_path = [note_array[0] for note_array in note_arrays]
+  shortest_path = None
 
   for possible_source_node in note_arrays[0]:
     for possible_target_node in note_arrays[-1]: 
@@ -92,7 +93,7 @@ def find_shortest_path(path_graph, note_arrays):
         #print("Target : ", path_graph.nodes[possible_target_node]["pos"])
         path = nx.shortest_path(path_graph, possible_source_node, possible_target_node, weight = "distance")
         path_length = get_path_length(path_graph, path)
-        if not shortest_path or path < shortest_path:
+        if not shortest_path or path_length < get_path_length(path_graph, shortest_path):
           shortest_path = path
       except nx.NetworkXNoPath:
         print("No path ???")
@@ -113,15 +114,47 @@ def find_paths(path_graph, note_arrays):
         print("No path ???")
         display_path_graph(path_graph)
 
-  print("Shortest path :", paths)
-  #return path
+  return paths
 
-def find_shortest_closest_path(G, paths):
+def find_shortest_closest_path(G, paths, previous_notes):
+
+  shortest_closest = paths[0]
+
   for path in paths:
-    pass
+    if is_better_distance_length(G, shortest_closest, path, previous_notes):
+      shortest_closest = path
 
-def compute_centroid(G, path):
-  pass
+  return shortest_closest
+
+def euclidean_distance(p1, p2):
+  return np.linalg.norm(np.array(p1) - np.array(p2))
+
+def get_centroid(G, path):
+  vectors = [G.nodes[note]["pos"] for note in path]
+  x = [v[0] for v in vectors]
+  y = [v[1] for v in vectors]
+  centroid = (sum(x) / len(vectors), sum(y) / len(vectors))
+  return centroid
+
+def is_better_distance_length(G, shortest_closest, path, previous_notes):
+  centroid = get_centroid(G, path)
+  
+  if len(previous_notes) > 0:
+    previous_centroid = get_centroid(G, previous_notes)
+  else: 
+    previous_centroid = (0,0)
+
+  shortest_closest_centroid = get_centroid(G, shortest_closest)
+  length = get_path_length(G, path)
+  shortest_closest_length = get_path_length(G, shortest_closest)
+
+  distance = euclidean_distance(centroid, previous_centroid)
+  shortest_closest_distance = euclidean_distance(shortest_closest_centroid, previous_centroid)
+
+  length_weight = 1
+  distance_weight = 0
+
+  return length * length_weight + distance * distance_weight < shortest_closest_length * length_weight + shortest_closest_distance * distance_weight
 
 def get_path_length(G, path):
   res = 0
