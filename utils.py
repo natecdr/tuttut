@@ -151,8 +151,8 @@ def is_better_distance_length(G, shortest_closest, path, previous_notes):
   distance = euclidean_distance(centroid, previous_centroid)
   shortest_closest_distance = euclidean_distance(shortest_closest_centroid, previous_centroid)
 
-  length_weight = 1
-  distance_weight = 0
+  length_weight = 0
+  distance_weight = 1
 
   return length * length_weight + distance * distance_weight < shortest_closest_length * length_weight + shortest_closest_distance * distance_weight
 
