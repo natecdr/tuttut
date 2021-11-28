@@ -22,7 +22,7 @@ class Note:
     return hash((self.degree, self.octave, id(self)))
 
   def __repr__(self):
-    return self.degree.value + str(self.octave)
+    return self.degree.value + str(self.octave) + "-" + str(hash(self))[2:4]
 
 class Degree(Enum):
   __order__ = "A Asharp B C Csharp D Dsharp E F Fsharp G Gsharp "
@@ -140,10 +140,16 @@ class Measure:
           note_arrays.append(get_notes_in_graph(self.tab.graph, note))
         path_graph = build_path_graph(self.tab.graph, note_arrays)
         shortest_path = find_shortest_path(path_graph, note_arrays)
+        find_paths(path_graph, note_arrays)
 
         for path_note in shortest_path:
           string, fret = self.tab.graph.nodes[path_note]["pos"]
           res[string] += str(fret)
+        
+        # pos = nx.get_node_attributes(self.tab.graph,'pos')
+        # nx.draw(self.tab.graph, pos)
+        # nx.draw(self.tab.graph.subgraph(shortest_path), pos = pos, node_color="red")
+        # plt.show()
 
       res = fill_measure_str(res)
 

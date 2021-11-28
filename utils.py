@@ -1,3 +1,4 @@
+from numpy import short
 import pretty_midi
 from pretty_midi.utilities import note_name_to_number
 import theory
@@ -79,29 +80,62 @@ def build_path_graph(G, note_arrays):
         for possible_target_note in note_arrays[idx+1]:
           res.add_edge(possible_note, possible_target_note, distance = G[possible_note][possible_target_note]["distance"])
 
-  return res
+  return res 
 
 def find_shortest_path(path_graph, note_arrays):
-  shortest_path = None
-
-  # edge_labels = nx.get_edge_attributes(path_graph,'distance')
-  # pos=nx.get_node_attributes(path_graph,'pos')
-  # nx.draw(path_graph, pos, with_labels=True)
-  # nx.draw_networkx_edge_labels(path_graph, pos, edge_labels = edge_labels)
-  # plt.show()
+  shortest_path = [note_array[0] for note_array in note_arrays]
 
   for possible_source_node in note_arrays[0]:
     for possible_target_node in note_arrays[-1]: 
       try:
+        #print("Source : ", path_graph.nodes[possible_source_node]["pos"])
+        #print("Target : ", path_graph.nodes[possible_target_node]["pos"])
         path = nx.shortest_path(path_graph, possible_source_node, possible_target_node, weight = "distance")
+        path_length = get_path_length(path_graph, path)
         if not shortest_path or path < shortest_path:
           shortest_path = path
       except nx.NetworkXNoPath:
-        #print("No path ???")
-        pass
+        print("No path ???")
+        display_path_graph(path_graph)
 
+  print("Shortest path :", shortest_path)
   return shortest_path
+
+def find_paths(path_graph, note_arrays):
+  paths = []
+  for possible_source_node in note_arrays[0]:
+    for possible_target_node in note_arrays[-1]: 
+      try:
+        path = nx.shortest_path(path_graph, possible_source_node, possible_target_node, weight = "distance")
+        path_length = get_path_length(path_graph, path)
+        paths.append(path)
+      except nx.NetworkXNoPath:
+        print("No path ???")
+        display_path_graph(path_graph)
+
+  print("Shortest path :", paths)
+  #return path
+
+def find_shortest_closest_path(G, paths):
+  for path in paths:
+    pass
+
+def compute_centroid(G, path):
+  pass
+
+def get_path_length(G, path):
+  res = 0
+  for i in range(len(path)-1):
+    res += G[path[i]][path[i+1]]["distance"]
+  return res
   
+def display_path_graph(path_graph):
+  edge_labels = nx.get_edge_attributes(path_graph,'distance')
+  pos=nx.get_node_attributes(path_graph,'pos')
+  nx.draw(path_graph, pos, with_labels=True)
+  nx.draw_networkx_edge_labels(path_graph, pos, edge_labels = edge_labels)
+  plt.show()
+
 def fill_measure_str(str_array):
   maxlen = len(max(str_array, key = len))
   res = []
@@ -110,5 +144,49 @@ def fill_measure_str(str_array):
   return res
 
 if __name__ == "__main__":
-  pass
+  arrays = [[1,11,111,1111], [2,22,222], [3,33]]
+  print(arrays[-1])
+  G = nx.DiGraph()
+  G.add_node(1, pos=(0,0))
+  G.add_node(11, pos=(0,1))
+  G.add_node(111, pos=(0,2))
+  G.add_node(1111, pos=(0,3))
+  G.add_node(2, pos=(1,0))
+  G.add_node(22, pos=(1,1))
+  G.add_node(222, pos=(1,2))
+  G.add_node(3, pos=(2,0))
+  G.add_node(33, pos=(2,1))
+
+  G.add_edge(1, 2, distance = 1)
+  G.add_edge(11, 2, distance = 2)
+  G.add_edge(111, 2, distance = 1)
+  G.add_edge(1111, 2, distance = 1)
+  G.add_edge(1, 22, distance = 1)
+  G.add_edge(11, 22, distance = 2)
+  G.add_edge(111, 22, distance = 1)
+  G.add_edge(1111, 22, distance = 1)
+  G.add_edge(1, 222, distance = 1)
+  G.add_edge(11, 222, distance = 2)
+  G.add_edge(111, 222, distance = 1)
+  G.add_edge(1111, 222, distance = 1)
+
+
+  G.add_edge(2, 3, distance = 1)
+  G.add_edge(22, 3, distance = 2)
+  G.add_edge(222, 3, distance = 2)
+  G.add_edge(2, 33, distance = 1)
+  G.add_edge(22, 33, distance = 2)
+  G.add_edge(222, 33, distance = 2)
+  
+
+  find_shortest_path(G, arrays)
+
+  pos = nx.get_node_attributes(G,'pos')
+  nx.draw(G, pos = pos, with_labels = True)
+  nx.draw_networkx_edge_labels(G, pos = pos, edge_labels=nx.get_edge_attributes(G,'distance'))
+  plt.show()
+
+  
+  
+  
   
