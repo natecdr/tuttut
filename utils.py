@@ -6,21 +6,21 @@ import math
 import networkx as nx
 import matplotlib.pyplot as plt
 
-def note_number_to_note(note_number):
+def note_number_to_note(note_number): #Converts pretty_midi note number to a Note object
   note = str(pretty_midi.note_number_to_name(note_number))
   (degree, octave) = (note[:-1], note[-1:]) if not '-' in note else (note[:-2], note[-2:])
   degree = theory.Degree(degree)
   
   return theory.Note(degree, octave)
 
-def midi_note_to_note(note):
+def midi_note_to_note(note): #Converts a pretty_midi note to a Note object
   return note_number_to_note(note.pitch)
 
-def measure_length_ticks(midi, time_signature):
+def measure_length_ticks(midi, time_signature): #Returns the number of ticks in a measure for a midi file
   measure_length = midi.time_to_tick(midi.get_beats()[time_signature.denominator])
   return measure_length
 
-def get_notes_between(midi, notes, begin, end):
+def get_notes_between(midi, notes, begin, end): #Return all notes between two specific timings in a midi file
   res = []
   for note in notes:
     start = midi.time_to_tick(note.start)
@@ -29,7 +29,7 @@ def get_notes_between(midi, notes, begin, end):
 
   return res
   
-def note_to_fret(string, note):
+def note_to_fret(string, note): #Converts a Note object to its corresponding fret number on a string
   string_name = string.degree.value + str(string.octave)
   note_name = note.degree.value + str(note.octave)
   n_string = pretty_midi.note_name_to_number(string_name)
@@ -37,14 +37,14 @@ def note_to_fret(string, note):
 
   return n_note - n_string
 
-def get_non_drum(instruments):
+def get_non_drum(instruments): #Returns all instruments that are non-drums
   res = []
   for instrument in instruments:
     if not instrument.is_drum:
       res.append(instrument)
   return res
 
-def get_all_possible_notes(tuning, nfrets = 20):
+def get_all_possible_notes(tuning, nfrets = 20): #Returns all possible_notes on a fretboard for k strings and n frets
   nstrings = len(tuning.strings)
   res = []
   for string in tuning.strings:
@@ -56,10 +56,10 @@ def get_all_possible_notes(tuning, nfrets = 20):
   
   return res
 
-def distance_between(x, y):
+def distance_between(x, y): #Computes the distance between two points (tuples)
   return math.dist(x,y)
 
-def get_notes_in_graph(G, note):
+def get_notes_in_graph(G, note): #Get all nodes that correspond to a specific note in a graph
   nodes = list(G.nodes)
   res = []
   for node in nodes:
@@ -67,7 +67,7 @@ def get_notes_in_graph(G, note):
       res.append(node)
   return res
 
-def build_path_graph(G, note_arrays):
+def build_path_graph(G, note_arrays): #Returns a path graph corresponding to all possible notes of a chord
   res = nx.DiGraph()
 
   for x, note_array in enumerate(note_arrays):
@@ -82,7 +82,7 @@ def build_path_graph(G, note_arrays):
 
   return res 
 
-def find_paths(path_graph, note_arrays):
+def find_paths(path_graph, note_arrays): #Returns all possible paths in a path graph
   paths = []
   for possible_source_node in note_arrays[0]:
     for possible_target_node in note_arrays[-1]: 
@@ -96,8 +96,8 @@ def find_paths(path_graph, note_arrays):
 
   return paths
 
-def find_shortest_closest_path(G, paths, previous_notes):
-
+def find_shortest_closest_path(G, path_graph, note_arrays, previous_notes): #Returns the path that best matches the distance_length constraints
+  paths = find_paths(path_graph, note_arrays)
   shortest_closest = paths[0]
 
   for path in paths:
@@ -106,9 +106,6 @@ def find_shortest_closest_path(G, paths, previous_notes):
 
   return shortest_closest
 
-def euclidean_distance(p1, p2):
-  return np.linalg.norm(np.array(p1) - np.array(p2))
-
 def get_centroid(G, path):
   vectors = [G.nodes[note]["pos"] for note in path]
   x = [v[0] for v in vectors]
@@ -116,25 +113,41 @@ def get_centroid(G, path):
   centroid = (sum(x) / len(vectors), sum(y) / len(vectors))
   return centroid
 
-def is_better_distance_length(G, shortest_closest, path, previous_notes):
-  centroid = get_centroid(G, path)
-  
-  if len(previous_notes) > 0:
-    previous_centroid = get_centroid(G, previous_notes)
-  else: 
-    previous_centroid = (0,0)
+def get_height(G, path):
+  y = [G.nodes[note]["pos"][1] for note in path]
+  return np.mean(y)
 
-  shortest_closest_centroid = get_centroid(G, shortest_closest)
+def is_better_distance_length(G, shortest_closest, path, previous_notes):
+  # centroid = get_centroid(G, path)
+  # if len(previous_notes) > 0:
+  #   previous_centroid = get_centroid(G, previous_notes)
+  # else: 
+  #   previous_centroid = (0,0)
+  # shortest_closest_centroid = get_centroid(G, shortest_closest)
+
+  height = get_height(G, path)
+  if len(previous_notes) > 0:
+    previous_height = get_height(G, previous_notes)
+  else: 
+    previous_height = 0
+  shortest_closest_height = get_height(G, shortest_closest)
+
   length = get_path_length(G, path)
   shortest_closest_length = get_path_length(G, shortest_closest)
 
-  distance = euclidean_distance(centroid, previous_centroid)
-  shortest_closest_distance = euclidean_distance(shortest_closest_centroid, previous_centroid)
+  hdistance = np.abs(height-previous_height)
+  shortest_closest_hdistance = np.abs(shortest_closest_height - previous_height)
 
-  length_weight = 0
-  distance_weight = 1
+  # distance = distance_between(centroid, previous_centroid)
+  # shortest_closest_distance = distance_between(shortest_closest_centroid, previous_centroid)
 
-  return length * length_weight + distance * distance_weight < shortest_closest_length * length_weight + shortest_closest_distance * distance_weight
+  length_weight = 1
+  distance_weight = 0
+
+  print("Length, Height, Score :", length, height, length * length_weight + hdistance * distance_weight)
+
+  #return length * length_weight + distance * distance_weight < shortest_closest_length * length_weight + shortest_closest_distance * distance_weight
+  return length * length_weight + hdistance * distance_weight < shortest_closest_length * length_weight + shortest_closest_hdistance * distance_weight
 
 def get_path_length(G, path):
   res = 0

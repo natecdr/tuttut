@@ -140,26 +140,19 @@ class Measure:
           note = midi_note_to_note(note)
           note_arrays.append(get_notes_in_graph(self.tab.graph, note))
         path_graph = build_path_graph(self.tab.graph, note_arrays)
-        shortest_path = find_shortest_path(path_graph, note_arrays)
-        
-        paths = find_paths(path_graph, note_arrays)
-        shortest_closest_path = find_shortest_closest_path(self.tab.graph, paths, previous_notes)
-        #print("Shortest_closest_path :", find_shortest_closest_path(self.tab.graph, paths, previous_notes))
+        best_path = find_shortest_closest_path(self.tab.graph, path_graph, note_arrays, previous_notes)
 
-        for path_note in shortest_path:
+        for path_note in best_path:
           string, fret = self.tab.graph.nodes[path_note]["pos"]
           res[string] += str(fret)
         
-        pos = nx.get_node_attributes(self.tab.graph,'pos')
-        plt.subplot(1, 2, 1)
-        nx.draw(self.tab.graph, pos)
-        nx.draw(self.tab.graph.subgraph(shortest_path), pos = pos, node_color="red")
-        plt.subplot(1, 2, 2)
-        nx.draw(self.tab.graph, pos)
-        nx.draw(self.tab.graph.subgraph(shortest_closest_path), pos = pos, node_color="green")
-        plt.show()
+        # pos = nx.get_node_attributes(self.tab.graph,'pos')
+        # plt.subplot(1, 2, 1)
+        # nx.draw(self.tab.graph, pos)
+        # nx.draw(self.tab.graph.subgraph(best_path), pos = pos, node_color="red")
+        # plt.show()
 
-        previous_notes = shortest_path.copy()
+        previous_notes = best_path.copy()
       res = fill_measure_str(res)
 
       for istring in range(self.tab.nstrings):
