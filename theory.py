@@ -2,7 +2,7 @@ from enum import Enum
 import numpy as np
 from utils import *
 
-class Note:
+class Note: #Note class
   def __init__(self, degree, octave):
     self._degree = degree
     self._octave = octave
@@ -24,7 +24,7 @@ class Note:
   def __repr__(self):
     return self.degree.value + str(self.octave) + "-" + str(hash(self))[2:4]
 
-class Degree(Enum):
+class Degree(Enum): #Degree of a note enum
   __order__ = "A Asharp B C Csharp D Dsharp E F Fsharp G Gsharp "
   A = "A"
   Asharp = "A#"
@@ -41,7 +41,7 @@ class Degree(Enum):
 
 standard_tuning = [Note(Degree.E, 4), Note(Degree.B, 3), Note(Degree.G, 3), Note(Degree.D, 3), Note(Degree.A, 2), Note(Degree.E, 2)]
 
-class Tuning:
+class Tuning: #Tuning class
   def __init__(self, strings = standard_tuning):
     self._strings = np.array(strings, dtype = Note)
     self.nstrings = len(strings)
@@ -50,7 +50,7 @@ class Tuning:
   def strings(self):
     return self._strings
 
-class Beat:
+class Beat: #Beat class
   def __init__(self, imeasure, ibeat, tab):
     self.ibeat = ibeat
     self.imeasure = imeasure
@@ -60,7 +60,8 @@ class Beat:
   def populate(self, notes_to_add, midi, time_signature):
     resolution = midi.resolution
     measure_length = measure_length_ticks(midi, time_signature)
-    if len(notes_to_add) > 4:
+    print("Notes to add to beat :", notes_to_add, len(notes_to_add))
+    if len(notes_to_add) >= 4:
       self.notes = -np.ones(len(notes_to_add)+1, dtype = Note)
 
     self.notes = [[] for note in self.notes]
@@ -68,6 +69,7 @@ class Beat:
     for note in notes_to_add:
       tick = midi.time_to_tick(note.start) - self.ibeat*resolution - self.imeasure*measure_length
       timing = int(np.ceil(tick/resolution*len(notes_to_add)))
+      print("Timing :", timing)
       self.notes[timing].append(note)
 
   def __repr__(self):
@@ -86,7 +88,7 @@ class Beat:
 
     return res
 
-class Measure:
+class Measure: #Measure class
   def __init__(self,tab, imeasure, time_signature):
     self.beats = np.empty(time_signature.numerator, dtype = Beat)
     self.imeasure = imeasure
