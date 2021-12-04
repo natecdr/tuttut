@@ -17,7 +17,7 @@ def midi_note_to_note(note): #Converts a pretty_midi note to a Note object
   return note_number_to_note(note.pitch)
 
 def measure_length_ticks(midi, time_signature): #Returns the number of ticks in a measure for a midi file
-  measure_length = midi.time_to_tick(midi.get_beats()[time_signature.denominator])
+  measure_length = time_signature.numerator * midi.resolution
   return measure_length
 
 def get_notes_between(midi, notes, begin, end): #Return all notes between two specific timings in a midi file
@@ -69,6 +69,7 @@ def get_notes_in_graph(G, note): #Get all nodes that correspond to a specific no
 
 def build_path_graph(G, note_arrays): #Returns a path graph corresponding to all possible notes of a chord
   res = nx.DiGraph()
+  print(note_arrays)
 
   for x, note_array in enumerate(note_arrays):
     for y, possible_note in enumerate(note_array):
@@ -92,7 +93,7 @@ def find_paths(path_graph, note_arrays): #Returns all possible paths in a path g
         paths.append(path)
       except nx.NetworkXNoPath:
         print("No path ???")
-        display_path_graph(path_graph)
+        #display_path_graph(path_graph)
 
   return paths
 
@@ -106,18 +107,18 @@ def find_shortest_closest_path(G, path_graph, note_arrays, previous_notes): #Ret
 
   return shortest_closest
 
-def get_centroid(G, path):
+def get_centroid(G, path): #Returns the centroid of all notes played in a path
   vectors = [G.nodes[note]["pos"] for note in path]
   x = [v[0] for v in vectors]
   y = [v[1] for v in vectors]
   centroid = (sum(x) / len(vectors), sum(y) / len(vectors))
   return centroid
 
-def get_height(G, path):
+def get_height(G, path): #Returns the average height on the fretboard of all notes played in a path
   y = [G.nodes[note]["pos"][1] for note in path]
   return np.mean(y)
 
-def is_better_distance_length(G, shortest_closest, path, previous_notes):
+def is_better_distance_length(G, shortest_closest, path, previous_notes): #Checks if the new path is better than the previous one
   # centroid = get_centroid(G, path)
   # if len(previous_notes) > 0:
   #   previous_centroid = get_centroid(G, previous_notes)
@@ -144,31 +145,37 @@ def is_better_distance_length(G, shortest_closest, path, previous_notes):
   length_weight = 1
   distance_weight = 0
 
-  print("Length, Height, Score :", length, height, length * length_weight + hdistance * distance_weight)
-
   #return length * length_weight + distance * distance_weight < shortest_closest_length * length_weight + shortest_closest_distance * distance_weight
   return length * length_weight + hdistance * distance_weight < shortest_closest_length * length_weight + shortest_closest_hdistance * distance_weight
 
-def get_path_length(G, path):
+def get_path_length(G, path): #Returns the total length of a path
   res = 0
   for i in range(len(path)-1):
     res += G[path[i]][path[i+1]]["distance"]
   return res
   
-def display_path_graph(path_graph):
+def display_path_graph(path_graph): #Displays the path graph on a plt plot
   edge_labels = nx.get_edge_attributes(path_graph,'distance')
   pos=nx.get_node_attributes(path_graph,'pos')
   nx.draw(path_graph, pos, with_labels=True)
   nx.draw_networkx_edge_labels(path_graph, pos, edge_labels = edge_labels)
   plt.show()
 
-def fill_measure_str(str_array):
+def fill_measure_str(str_array): #Fills column of a measure so that all strings are of equal length
   maxlen = len(max(str_array, key = len))
   res = []
   for str in str_array:
     res.append(str.ljust(maxlen, "-"))
   return res
   
-  
+def sort_notes_by_tick(notes): #Returns sorted notes by tick
+  return sorted(notes, key = lambda n: n.start)
+
+def display_notes_on_graph(G, path): #Displays notes played on a plt graph
+  pos = nx.get_node_attributes(G,'pos')
+  plt.figure(figsize=(2,6))
+  nx.draw(G, pos)
+  nx.draw(G.subgraph(path), pos = pos, node_color="red")
+  plt.show()
   
   

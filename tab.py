@@ -1,7 +1,7 @@
 import numpy as np
 from pretty_midi.containers import TimeSignature
 from theory import Measure
-from utils import measure_length_ticks, get_notes_between, get_non_drum, get_all_possible_notes, distance_between
+from utils import measure_length_ticks, get_notes_between, get_non_drum, get_all_possible_notes, distance_between, sort_notes_by_tick
 import networkx as nx
 
 class Tab:
@@ -15,18 +15,38 @@ class Tab:
     self.midi = midi
     self.graph = self.build_complete_graph(tuning)
 
+  # def populate(self):
+  #   for i,time_signature in enumerate(self.time_signatures):
+  #     measure_length = measure_length_ticks(self.midi, time_signature)
+  #     time_sig_start = time_signature.time
+  #     time_sig_end = self.time_signatures[i+1].time if i < len(self.time_signatures)-1 else self.midi.time_to_tick(self.midi.get_end_time())
+  #     measure_ticks = np.arange(time_sig_start, time_sig_end, measure_length)
+  #     for instrument in get_non_drum(self.midi.instruments):
+  #       print("ggag")
+  #       for imeasure, measure_tick in enumerate(measure_ticks):
+  #         notes = get_notes_between(self.midi, instrument.notes, measure_tick, measure_tick + measure_length)
+  #         print(notes)
+  #         measure = Measure(self,imeasure, time_signature)
+  #         measure.populate(notes, imeasure, self.midi)
+  #         self.measures.append(measure)
+
   def populate(self):
     for i,time_signature in enumerate(self.time_signatures):
       measure_length = measure_length_ticks(self.midi, time_signature)
-      for instrument in get_non_drum(self.midi.instruments):
-        time_sig_start = time_signature.time
-        time_sig_end = self.time_signatures[i+1].time if i < len(self.time_signatures)-1 else self.midi.time_to_tick(self.midi.get_end_time())
-        measure_ticks = np.arange(time_sig_start, time_sig_end, measure_length)
-        for imeasure, measure_tick in enumerate(measure_ticks):
-          notes = get_notes_between(self.midi, instrument.notes, measure_tick, measure_tick + measure_length)
-          measure = Measure(self,imeasure, time_signature)
-          measure.populate(notes, imeasure, self.midi)
-          self.measures.append(measure)
+      time_sig_start = time_signature.time
+      time_sig_end = self.time_signatures[i+1].time if i < len(self.time_signatures)-1 else self.midi.time_to_tick(self.midi.get_end_time())
+      measure_ticks = np.arange(time_sig_start, time_sig_end, measure_length)
+      
+      for imeasure, measure_tick in enumerate(measure_ticks):
+        notes = []
+        for instrument in get_non_drum(self.midi.instruments):
+          notes = np.concatenate((notes, get_notes_between(self.midi, instrument.notes, measure_tick, measure_tick + measure_length))) 
+        notes = sort_notes_by_tick(notes)
+        print("Sorted :",[note.start for note in notes])
+        print("Nb notes :", len(notes))
+        measure = Measure(self,imeasure, time_signature)
+        measure.populate(notes, imeasure, self.midi)
+        self.measures.append(measure)
 
   @property 
   def nstrings(self):
@@ -37,6 +57,24 @@ class Tab:
     for i in range(1, len(self.measures)):
       notes = np.concatenate((notes, self.measures[i].get_all_notes()), axis = 1)
     return notes
+    
+  def build_complete_graph(self, tuning):
+    note_map = get_all_possible_notes(tuning)
+    G = nx.Graph()
+    for istring, string in enumerate(note_map):
+      for inote, note in enumerate(string):
+        G.add_node(note, pos = (istring, inote))
+
+    for node in list(G.nodes(data=True)):
+      for node_to_link in list(G.nodes(data=True)):
+        if not node is node_to_link:
+          if node_to_link[1]['pos'][1] == 0:
+            dst = 0
+          else:
+            dst = distance_between(node[1]['pos'], node_to_link[1]['pos'])
+          G.add_edge(node[0], node_to_link[0], distance = dst)
+
+    return G
 
   def to_string(self):
     res = []
@@ -56,24 +94,6 @@ class Tab:
     with open(f"./tabs/{self.name}.txt","w") as file:
       for string_notes in notes_str:
         file.write(string_notes + "\n")
-    
-  def build_complete_graph(self, tuning):
-    note_map = get_all_possible_notes(tuning)
-    G = nx.Graph()
-    for istring, string in enumerate(note_map):
-      for inote, note in enumerate(string):
-        G.add_node(note, pos = (istring, inote))
-
-    for node in list(G.nodes(data=True)):
-      for node_to_link in list(G.nodes(data=True)):
-        if not node is node_to_link:
-          if node_to_link[1]['pos'][1] == 0:
-            dst = 0
-          else:
-            dst = distance_between(node[1]['pos'], node_to_link[1]['pos'])
-          G.add_edge(node[0], node_to_link[0], distance = dst)
-
-    return G
 
   def __repr__(self):
     res = ""

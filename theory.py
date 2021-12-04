@@ -88,7 +88,7 @@ class Beat:
 
 class Measure:
   def __init__(self,tab, imeasure, time_signature):
-    self.beats = np.empty(time_signature.denominator, dtype = Beat)
+    self.beats = np.empty(time_signature.numerator, dtype = Beat)
     self.imeasure = imeasure
     self.time_signature = time_signature
     self.tab = tab
@@ -96,7 +96,7 @@ class Measure:
   def populate(self, notes, imeasure, midi):
     measure_length = measure_length_ticks(midi, self.time_signature)
     beat_ticks = np.arange(imeasure*measure_length,imeasure*measure_length + measure_length, step=midi.resolution)
-    for ibeat in range(self.time_signature.denominator):
+    for ibeat in range(len(self.beats)): 
       current_beat_tick = beat_ticks[ibeat]
       beat_notes = get_notes_between(midi, notes, current_beat_tick, current_beat_tick + midi.resolution)
       beat = Beat(imeasure, ibeat, self.tab)
@@ -135,6 +135,7 @@ class Measure:
     previous_notes = []
     for timing, notes in enumerate(all_notes):
       if notes: #if notes contains one or more notes at a specific timing
+        print([midi_note_to_note(note) for note in notes])
         note_arrays = []
         for note in notes:
           note = midi_note_to_note(note)
@@ -145,12 +146,10 @@ class Measure:
         for path_note in best_path:
           string, fret = self.tab.graph.nodes[path_note]["pos"]
           res[string] += str(fret)
-        
-        # pos = nx.get_node_attributes(self.tab.graph,'pos')
-        # plt.subplot(1, 2, 1)
-        # nx.draw(self.tab.graph, pos)
-        # nx.draw(self.tab.graph.subgraph(best_path), pos = pos, node_color="red")
-        # plt.show()
+          if fret>15:
+            display_notes_on_graph(self.tab.graph, best_path)            
+
+        #display_notes_on_graph(self.tab.graph, best_path)
 
         previous_notes = best_path.copy()
       res = fill_measure_str(res)
