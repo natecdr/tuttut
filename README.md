@@ -15,7 +15,7 @@ You should find the generated tabs in the *tabs* folder.
 
 ## Expected results
 
-If there is no error, this is the kind of result you are expecting to get :
+This is the kind of result you are expecting to get :
 
 ```text
 E ||----------------3----|5----5--------------|1----1----0----0----|--------------------|------3----1----1----|0----0--------------|------3----1----1----|0----0--------------|----------------3----|5----5--------------|1----1----0----0----|--------------------|
