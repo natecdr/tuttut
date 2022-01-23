@@ -1,7 +1,7 @@
 import numpy as np
 from pretty_midi.containers import TimeSignature
-from theory import Measure
-from utils import measure_length_ticks, get_notes_between, get_non_drum, get_all_possible_notes, distance_between, sort_notes_by_tick
+from app.theory import Measure
+from app.utils import measure_length_ticks, get_notes_between, get_non_drum, get_all_possible_notes, distance_between, sort_notes_by_tick
 import networkx as nx
 
 class Tab:

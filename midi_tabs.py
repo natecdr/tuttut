@@ -1,6 +1,6 @@
 import pretty_midi
-from tab import Tab
-from theory import Tuning
+from app.tab import Tab
+from app.theory import Tuning
 import argparse
 
 def init_parser():
@@ -18,5 +18,6 @@ if __name__ == "__main__":
     tab = Tab(file[:-4], Tuning(), f)
     tab.populate()
     tab.to_file()
-  except:
+  except Exception as e:
+    print(str(e))
     print("There was an error. You might want to try another MIDI file. The tool tends to struggle with more complicated multi-channel MIDI files.")

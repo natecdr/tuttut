@@ -1,7 +1,7 @@
 import numpy as np
 import pretty_midi
 from pretty_midi.utilities import note_name_to_number
-import theory
+import app.theory as theory
 import math
 import networkx as nx
 import matplotlib.pyplot as plt

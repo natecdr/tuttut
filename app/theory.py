@@ -1,6 +1,6 @@
 from enum import Enum
 import numpy as np
-from utils import *
+from app.utils import *
 
 class Note: #Note class
   def __init__(self, degree, octave):
