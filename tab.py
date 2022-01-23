@@ -42,8 +42,6 @@ class Tab:
         for instrument in get_non_drum(self.midi.instruments):
           notes = np.concatenate((notes, get_notes_between(self.midi, instrument.notes, measure_tick, measure_tick + measure_length))) 
         notes = sort_notes_by_tick(notes)
-        print("Sorted :",[note.start for note in notes])
-        print("Nb notes :", len(notes))
         measure = Measure(self,imeasure, time_signature)
         measure.populate(notes, imeasure, self.midi)
         self.measures.append(measure)

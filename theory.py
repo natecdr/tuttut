@@ -60,7 +60,6 @@ class Beat: #Beat class
   def populate(self, notes_to_add, midi, time_signature):
     resolution = midi.resolution
     measure_length = measure_length_ticks(midi, time_signature)
-    print("Notes to add to beat :", notes_to_add, len(notes_to_add))
     if len(notes_to_add) >= 4:
       self.notes = -np.ones(len(notes_to_add)+1, dtype = Note)
 
@@ -69,7 +68,6 @@ class Beat: #Beat class
     for note in notes_to_add:
       tick = midi.time_to_tick(note.start) - self.ibeat*resolution - self.imeasure*measure_length
       timing = int(np.ceil(tick/resolution*len(notes_to_add)))
-      print("Timing :", timing)
       self.notes[timing].append(note)
 
   def __repr__(self):
@@ -137,7 +135,6 @@ class Measure: #Measure class
     previous_notes = []
     for timing, notes in enumerate(all_notes):
       if notes: #if notes contains one or more notes at a specific timing
-        print([midi_note_to_note(note) for note in notes])
         note_arrays = []
         for note in notes:
           note = midi_note_to_note(note)
@@ -147,9 +144,7 @@ class Measure: #Measure class
 
         for path_note in best_path:
           string, fret = self.tab.graph.nodes[path_note]["pos"]
-          res[string] += str(fret)
-          if fret>15:
-            display_notes_on_graph(self.tab.graph, best_path)            
+          res[string] += str(fret)       
 
         #display_notes_on_graph(self.tab.graph, best_path)
 

@@ -69,8 +69,7 @@ def get_notes_in_graph(G, note): #Get all nodes that correspond to a specific no
 
 def build_path_graph(G, note_arrays): #Returns a path graph corresponding to all possible notes of a chord
   res = nx.DiGraph()
-  print(note_arrays)
-
+  
   for x, note_array in enumerate(note_arrays):
     for y, possible_note in enumerate(note_array):
       res.add_node(possible_note, pos = (x, y))
@@ -92,7 +91,8 @@ def find_paths(path_graph, note_arrays): #Returns all possible paths in a path g
         path_length = get_path_length(path_graph, path)
         paths.append(path)
       except nx.NetworkXNoPath:
-        print("No path ???")
+        pass
+        #print("No path ???")
         #display_path_graph(path_graph)
 
   return paths
@@ -136,8 +136,8 @@ def is_better_distance_length(G, shortest_closest, path, previous_notes): #Check
   length = get_path_length(G, path)
   shortest_closest_length = get_path_length(G, shortest_closest)
 
-  hdistance = np.abs(height-previous_height)
-  shortest_closest_hdistance = np.abs(shortest_closest_height - previous_height)
+  dheight = np.abs(height-previous_height)
+  shortest_closest_dheight = np.abs(shortest_closest_height - previous_height)
 
   # distance = distance_between(centroid, previous_centroid)
   # shortest_closest_distance = distance_between(shortest_closest_centroid, previous_centroid)
@@ -146,7 +146,7 @@ def is_better_distance_length(G, shortest_closest, path, previous_notes): #Check
   distance_weight = 0
 
   #return length * length_weight + distance * distance_weight < shortest_closest_length * length_weight + shortest_closest_distance * distance_weight
-  return length * length_weight + hdistance * distance_weight < shortest_closest_length * length_weight + shortest_closest_hdistance * distance_weight
+  return length * length_weight + dheight * distance_weight < shortest_closest_length * length_weight + shortest_closest_dheight * distance_weight
 
 def get_path_length(G, path): #Returns the total length of a path
   res = 0
