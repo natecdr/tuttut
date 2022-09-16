@@ -55,20 +55,27 @@ class Beat: #Beat class
     self.ibeat = ibeat
     self.imeasure = imeasure
     self.tab = tab
-    self.notes = -np.ones(4, dtype = Note)
+    self.notes = None
 
   def populate(self, notes_to_add, midi, time_signature):
+    print("_____________________________________________")
+    print(f"Measure {self.imeasure}, beat {self.ibeat}")
+
     resolution = midi.resolution
     measure_length = measure_length_ticks(midi, time_signature)
-    if len(notes_to_add) >= 4:
-      self.notes = -np.ones(len(notes_to_add)+1, dtype = Note)
 
-    self.notes = [[] for note in self.notes]
+    nsep = max(4, len(notes_to_add)+1)
+
+    self.notes = [[] for i in range(nsep)]
     
     for note in notes_to_add:
       tick = midi.time_to_tick(note.start) - self.ibeat*resolution - self.imeasure*measure_length
-      timing = int(np.ceil(tick/resolution*len(notes_to_add)))
+      # timing = int(np.ceil(tick/resolution*(nsep-1)))
+      timing = int(tick/resolution*(nsep-1))
+      print(midi_note_to_note(note), "| Tick :", tick, "| Timing :", timing)
       self.notes[timing].append(note)
+
+    print(self.notes)
 
   def __repr__(self):
     res = ""
@@ -141,12 +148,13 @@ class Measure: #Measure class
           note_arrays.append(get_notes_in_graph(self.tab.graph, note))
         path_graph = build_path_graph(self.tab.graph, note_arrays)
         best_path = find_shortest_closest_path(self.tab.graph, path_graph, note_arrays, previous_notes)
+        display_path_graph(path_graph)
 
         for path_note in best_path:
           string, fret = self.tab.graph.nodes[path_note]["pos"]
           res[string] += str(fret)       
 
-        #display_notes_on_graph(self.tab.graph, best_path)
+        # display_notes_on_graph(self.tab.graph, best_path)
 
         previous_notes = best_path.copy()
       res = fill_measure_str(res)

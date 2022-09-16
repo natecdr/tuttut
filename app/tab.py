@@ -1,34 +1,20 @@
 import numpy as np
 from pretty_midi.containers import TimeSignature
 from app.theory import Measure
-from app.utils import measure_length_ticks, get_notes_between, get_non_drum, get_all_possible_notes, distance_between, sort_notes_by_tick
+# from app.utils import display_notes_on_graph, display_path_graph, measure_length_ticks, get_notes_between, get_non_drum, get_all_possible_notes, distance_between, sort_notes_by_tick
+from app.utils import *
 import networkx as nx
 
 class Tab:
   def __init__(self, name, tuning, midi):
+    quantize(midi)
     self.name = name
-    self.tempo = midi.estimate_tempo()
     self.tuning = tuning
     self.time_signatures = midi.time_signature_changes if len(midi.time_signature_changes) > 0 else [TimeSignature(4, 4, 0)]
-    self._nstrings = len(tuning.strings)
+    self.nstrings = len(tuning.strings)
     self.measures = []
     self.midi = midi
-    self.graph = self.build_complete_graph(tuning)
-
-  # def populate(self):
-  #   for i,time_signature in enumerate(self.time_signatures):
-  #     measure_length = measure_length_ticks(self.midi, time_signature)
-  #     time_sig_start = time_signature.time
-  #     time_sig_end = self.time_signatures[i+1].time if i < len(self.time_signatures)-1 else self.midi.time_to_tick(self.midi.get_end_time())
-  #     measure_ticks = np.arange(time_sig_start, time_sig_end, measure_length)
-  #     for instrument in get_non_drum(self.midi.instruments):
-  #       print("ggag")
-  #       for imeasure, measure_tick in enumerate(measure_ticks):
-  #         notes = get_notes_between(self.midi, instrument.notes, measure_tick, measure_tick + measure_length)
-  #         print(notes)
-  #         measure = Measure(self,imeasure, time_signature)
-  #         measure.populate(notes, imeasure, self.midi)
-  #         self.measures.append(measure)
+    self.graph = self.build_complete_graph()
 
   def populate(self):
     for i,time_signature in enumerate(self.time_signatures):
@@ -36,19 +22,17 @@ class Tab:
       time_sig_start = time_signature.time
       time_sig_end = self.time_signatures[i+1].time if i < len(self.time_signatures)-1 else self.midi.time_to_tick(self.midi.get_end_time())
       measure_ticks = np.arange(time_sig_start, time_sig_end, measure_length)
-      
+
       for imeasure, measure_tick in enumerate(measure_ticks):
         notes = []
         for instrument in get_non_drum(self.midi.instruments):
           notes = np.concatenate((notes, get_notes_between(self.midi, instrument.notes, measure_tick, measure_tick + measure_length))) 
         notes = sort_notes_by_tick(notes)
-        measure = Measure(self,imeasure, time_signature)
+        measure = Measure(self, imeasure, time_signature)
         measure.populate(notes, imeasure, self.midi)
         self.measures.append(measure)
-
-  @property 
-  def nstrings(self):
-    return self._nstrings
+        print(notes)
+        print("")
 
   def get_all_notes(self):
     notes = self.measures[0].get_all_notes()
@@ -56,23 +40,26 @@ class Tab:
       notes = np.concatenate((notes, self.measures[i].get_all_notes()), axis = 1)
     return notes
     
-  def build_complete_graph(self, tuning):
-    note_map = get_all_possible_notes(tuning)
-    G = nx.Graph()
+  def build_complete_graph(self):
+    note_map = get_all_possible_notes(self.tuning)
+    
+    complete_graph = nx.Graph()
     for istring, string in enumerate(note_map):
       for inote, note in enumerate(string):
-        G.add_node(note, pos = (istring, inote))
+        complete_graph.add_node(note, pos = (istring, inote))
 
-    for node in list(G.nodes(data=True)):
-      for node_to_link in list(G.nodes(data=True)):
+    complete_graph_nodes = list(complete_graph.nodes(data=True))
+
+    for node in complete_graph_nodes:
+      for node_to_link in complete_graph_nodes:
         if not node is node_to_link:
           if node_to_link[1]['pos'][1] == 0:
             dst = 0
           else:
             dst = distance_between(node[1]['pos'], node_to_link[1]['pos'])
-          G.add_edge(node[0], node_to_link[0], distance = dst)
+          complete_graph.add_edge(node[0], node_to_link[0], distance = dst)
 
-    return G
+    return complete_graph
 
   def to_string(self):
     res = []

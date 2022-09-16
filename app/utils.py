@@ -156,9 +156,13 @@ def get_path_length(G, path): #Returns the total length of a path
   
 def display_path_graph(path_graph): #Displays the path graph on a plt plot
   edge_labels = nx.get_edge_attributes(path_graph,'distance')
+
+  for label in edge_labels:
+    edge_labels[label] = round(edge_labels[label], 2)
+
   pos=nx.get_node_attributes(path_graph,'pos')
   nx.draw(path_graph, pos, with_labels=True)
-  nx.draw_networkx_edge_labels(path_graph, pos, edge_labels = edge_labels)
+  nx.draw_networkx_edge_labels(path_graph, pos, edge_labels = edge_labels, label_pos = 0.6)
   plt.show()
 
 def fill_measure_str(str_array): #Fills column of a measure so that all strings are of equal length
@@ -178,4 +182,14 @@ def display_notes_on_graph(G, path): #Displays notes played on a plt graph
   nx.draw(G.subgraph(path), pos = pos, node_color="red")
   plt.show()
   
-  
+def round_to_multiple(n, base=10):
+    return base * round(n/base)
+
+def quantize(midi):
+    for instrument in midi.instruments:
+        quantized_notes = []
+        for note in instrument.notes:
+            rounded = round_to_multiple(midi.time_to_tick(note.start), base=10)
+            quantized_notes.append(pretty_midi.Note(velocity = note.velocity, pitch = note.pitch, start = midi.tick_to_time(rounded), end=note.end))
+
+        instrument.notes = quantized_notes
