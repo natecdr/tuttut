@@ -1,7 +1,6 @@
 import numpy as np
 from pretty_midi.containers import TimeSignature
 from app.theory import Measure
-# from app.utils import display_notes_on_graph, display_path_graph, measure_length_ticks, get_notes_between, get_non_drum, get_all_possible_notes, distance_between, sort_notes_by_tick
 from app.utils import *
 import networkx as nx
 
@@ -31,8 +30,6 @@ class Tab:
         measure = Measure(self, imeasure, time_signature)
         measure.populate(notes, imeasure, self.midi)
         self.measures.append(measure)
-        print(notes)
-        print("")
 
   def get_all_notes(self):
     notes = self.measures[0].get_all_notes()

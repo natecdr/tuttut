@@ -58,9 +58,6 @@ class Beat: #Beat class
     self.notes = None
 
   def populate(self, notes_to_add, midi, time_signature):
-    print("_____________________________________________")
-    print(f"Measure {self.imeasure}, beat {self.ibeat}")
-
     resolution = midi.resolution
     measure_length = measure_length_ticks(midi, time_signature)
 
@@ -72,10 +69,7 @@ class Beat: #Beat class
       tick = midi.time_to_tick(note.start) - self.ibeat*resolution - self.imeasure*measure_length
       # timing = int(np.ceil(tick/resolution*(nsep-1)))
       timing = int(tick/resolution*(nsep-1))
-      print(midi_note_to_note(note), "| Tick :", tick, "| Timing :", timing)
       self.notes[timing].append(note)
-
-    print(self.notes)
 
   def __repr__(self):
     res = ""

@@ -154,15 +154,17 @@ def get_path_length(G, path): #Returns the total length of a path
     res += G[path[i]][path[i+1]]["distance"]
   return res
   
-def display_path_graph(path_graph): #Displays the path graph on a plt plot
-  edge_labels = nx.get_edge_attributes(path_graph,'distance')
-
-  for label in edge_labels:
-    edge_labels[label] = round(edge_labels[label], 2)
-
+def display_path_graph(path_graph, show_distances=True, show_names=True): #Displays the path graph on a plt plot
   pos=nx.get_node_attributes(path_graph,'pos')
-  nx.draw(path_graph, pos, with_labels=True)
-  nx.draw_networkx_edge_labels(path_graph, pos, edge_labels = edge_labels, label_pos = 0.6)
+  nx.draw(path_graph, pos, with_labels=show_names)
+
+  if show_distances:
+    edge_labels = nx.get_edge_attributes(path_graph,'distance')
+
+    for label in edge_labels:
+      edge_labels[label] = round(edge_labels[label], 2)
+    nx.draw_networkx_edge_labels(path_graph, pos, edge_labels = edge_labels, label_pos = 0.6)
+
   plt.show()
 
 def fill_measure_str(str_array): #Fills column of a measure so that all strings are of equal length
