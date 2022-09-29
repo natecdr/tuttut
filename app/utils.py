@@ -88,7 +88,7 @@ def find_paths(G, path_graph, note_arrays): #Returns all possible paths in a pat
     for possible_target_node in note_arrays[-1]: 
       try:
         path = nx.shortest_path(path_graph, possible_source_node, possible_target_node, weight = "distance")
-        if is_path_valid(G, path):
+        if is_path_possible(G, path, note_arrays):
           paths.append(path)
       except nx.NetworkXNoPath:
         pass
@@ -97,15 +97,20 @@ def find_paths(G, path_graph, note_arrays): #Returns all possible paths in a pat
 
   return paths
 
-def is_path_valid(G, path):
-  plucked_strings = []
-  for note in path:
-    istring = G.nodes[note]["pos"][0]
-    if istring in plucked_strings:
-      return False
-    else:
-      plucked_strings.append(istring)
-  return True
+def is_path_possible(G, path, note_arrays):
+  #No 2 fingers on a single string
+  plucked_strings = [G.nodes[note]["pos"][0] for note in path]
+
+  #No more than 5 fret span
+  used_frets = [G.nodes[note]["pos"][1] for note in path]
+
+  #Path doesn't visit more nodes than necessary
+  
+  possible = (len(plucked_strings) == len(set(plucked_strings))
+              and (max(used_frets) - min(used_frets)) < 5
+              and len(path) <= len(note_arrays))
+
+  return possible
 
 def find_best_path(G, note_arrays, previous_path): #Returns the path that best matches the distance_length constraints
   paths = []

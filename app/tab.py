@@ -65,8 +65,34 @@ class Tab:
       s += "||" if len(string.degree.value)>1 else " ||"
       res.append(s)
 
+    previous_path = []
+
     for measure in self.measures:
-      res = measure.to_string(res)
+      all_notes = measure.get_all_notes()
+
+      for timing, notes in enumerate(all_notes):
+        if notes: #if notes contains one or more notes at a specific timing
+          note_arrays = []
+          for note in notes:
+            note = midi_note_to_note(note)
+            note_arrays.append(get_notes_in_graph(self.graph, note))
+          best_path = find_best_path(self.graph, note_arrays, previous_path)
+          # display_path_graph(path_graph)
+
+          for path_note in best_path:
+            string, fret = self.graph.nodes[path_note]["pos"]
+            res[string] += str(fret)       
+
+          # display_notes_on_graph(self.tab.graph, best_path)
+
+          previous_path = best_path
+        res = fill_measure_str(res)
+
+        for istring in range(self.nstrings):
+            res[istring] += "-"
+        
+      for istring in range(self.nstrings):
+        res[istring] += "|"
 
     return res
 

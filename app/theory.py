@@ -72,22 +72,6 @@ class Beat: #Beat class
       timing = int(tick/resolution*(nsep-1))
       self.notes[timing].append(note)
 
-  def __repr__(self):
-    res = ""
-    istring = 0
-    for string in self.tab.tuning.strings:
-      res += string.degree.value if len(string.degree.value)>1 else string.degree.value + " "
-      res += "|"
-      for j in range(self.notes.shape[1]):
-        if self.notes[istring,j] != -1:
-          res += "0"
-        else: 
-          res += "-"
-      istring += 1
-      res += "\n"
-
-    return res
-
 class Measure: #Measure class
   def __init__(self,tab, imeasure, time_signature):
     self.beats = np.empty(time_signature.numerator, dtype = Beat)
@@ -110,55 +94,5 @@ class Measure: #Measure class
     
     for i in range(1, len(self.beats)):
       notes += self.beats[i].notes
-      
+
     return notes
-
-  def __repr__(self):
-    notes = self.get_all_notes()
-
-    res = ""
-    istring = 0
-    for string in self.tab.tuning.strings:
-      res += string.degree.value if len(string.degree.value)>1 else string.degree.value + " "
-      res += "|"
-      for j in range(notes.shape[1]):
-        if notes[istring,j] != -1:
-          res += "0"
-        else: 
-          res += "-"
-      istring += 1
-      res += "\n"
-
-    return res
-
-  def to_string(self, init_array):
-    res = init_array.copy()
-    all_notes = self.get_all_notes()
-    previous_path = []
-    for timing, notes in enumerate(all_notes):
-      if notes: #if notes contains one or more notes at a specific timing
-        note_arrays = []
-        for note in notes:
-          note = midi_note_to_note(note)
-          note_arrays.append(get_notes_in_graph(self.tab.graph, note))
-        best_path = find_best_path(self.tab.graph, note_arrays, previous_path)
-        # display_path_graph(path_graph)
-        # print(best_path, ":", get_path_length(self.tab.graph, best_path))
-
-        for path_note in best_path:
-          string, fret = self.tab.graph.nodes[path_note]["pos"]
-          res[string] += str(fret)       
-
-        # display_notes_on_graph(self.tab.graph, best_path)
-
-        previous_notes = best_path.copy()
-      res = fill_measure_str(res)
-
-      for istring in range(self.tab.nstrings):
-          res[istring] += "-"
-      
-    for istring in range(self.tab.nstrings):
-      res[istring] += "|"
-
-    return res
-
