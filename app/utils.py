@@ -107,16 +107,8 @@ def is_path_valid(G, path):
       plucked_strings.append(istring)
   return True
 
-def find_shortest_closest_path(G, note_arrays, previous_notes): #Returns the path that best matches the distance_length constraints
+def find_best_path(G, note_arrays, previous_path): #Returns the path that best matches the distance_length constraints
   paths = []
-
-  # for i in range(len(note_arrays)):
-  #   note_arrays = roll(note_arrays,i)
-  #   path_graph = build_path_graph(G, note_arrays)
-  #   # display_path_graph(path_graph)
-
-  #   paths += find_paths(G, path_graph, note_arrays)
-
 
   for note_arrays_permutation in list(itertools.permutations(note_arrays)):
     path_graph = build_path_graph(G, note_arrays_permutation)
@@ -124,18 +116,36 @@ def find_shortest_closest_path(G, note_arrays, previous_notes): #Returns the pat
 
     paths += find_paths(G, path_graph, note_arrays_permutation)
 
+  path_scores = [compute_path_difficulty(G, path, previous_path) for path in paths]
 
-  # path_graph = build_path_graph(G, note_arrays)
-  # paths += find_paths(G, path_graph, note_arrays)
-  
+  best_path = paths[np.argmin(path_scores)]
 
-  shortest_closest_path = paths[0]
+  return best_path
 
-  for path in paths:
-    if is_better_distance_length(G, shortest_closest_path, path, previous_notes):
-      shortest_closest_path = path
+def compute_path_difficulty(G, path, previous_path):
+  height = get_height(G, path)
+  previous_height = get_height(G, previous_path) if len(previous_path) > 0 else 0
+  dheight = np.abs(height-previous_height)
 
-  return shortest_closest_path
+  length = get_path_length(G, path)
+
+  nfingers = get_nfingers(G, path)
+
+  difficulty = laplace_distro(dheight, b=1) * 1/(1+dheight) * 1/(1+nfingers) * 1/(1+length)
+
+  return 1/difficulty
+
+def laplace_distro(x, b, mu=0):
+  return (1/(2*b))*math.exp(-abs(x-mu)/(b))
+
+def get_nfingers(G, path):
+  count = 0
+  for note in path:
+    ifret = G.nodes[note]["pos"][1]
+    if ifret != 0:
+      count += 1
+    
+  return count
 
 def get_centroid(G, path): #Returns the centroid of all notes played in a path
   vectors = [G.nodes[note]["pos"] for note in path]
@@ -147,35 +157,6 @@ def get_centroid(G, path): #Returns the centroid of all notes played in a path
 def get_height(G, path): #Returns the average height on the fretboard of all notes played in a path
   y = [G.nodes[note]["pos"][1] for note in path]
   return np.mean(y)
-
-def is_better_distance_length(G, shortest_closest, path, previous_notes): #Checks if the new path is better than the previous one
-  # centroid = get_centroid(G, path)
-  # if len(previous_notes) > 0:
-  #   previous_centroid = get_centroid(G, previous_notes)
-  # else: 
-  #   previous_centroid = (0,0)
-  # shortest_closest_centroid = get_centroid(G, shortest_closest)
-
-  height = get_height(G, path)
-  previous_height = get_height(G, previous_notes) if len(previous_notes) > 0 else 0
-  shortest_closest_height = get_height(G, shortest_closest)
-
-  length = get_path_length(G, path)
-  shortest_closest_length = get_path_length(G, shortest_closest)
-
-  dheight = np.abs(height-previous_height)
-  shortest_closest_dheight = np.abs(shortest_closest_height - previous_height)
-
-  # distance = distance_between(centroid, previous_centroid)
-  # shortest_closest_distance = distance_between(shortest_closest_centroid, previous_centroid)
-
-  length_weight = 1
-  distance_weight = 0
-
-  #return length * length_weight + distance * distance_weight < shortest_closest_length * length_weight + shortest_closest_distance * distance_weight
-  # return length * length_weight + dheight * distance_weight < shortest_closest_length * length_weight + shortest_closest_dheight * distance_weight
-  return length * length_weight + height * distance_weight < shortest_closest_length * length_weight + shortest_closest_height * distance_weight
-
 
 def get_path_length(G, path): #Returns the total length of a path
   res = 0

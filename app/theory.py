@@ -110,7 +110,7 @@ class Measure: #Measure class
     
     for i in range(1, len(self.beats)):
       notes += self.beats[i].notes
-
+      
     return notes
 
   def __repr__(self):
@@ -134,14 +134,14 @@ class Measure: #Measure class
   def to_string(self, init_array):
     res = init_array.copy()
     all_notes = self.get_all_notes()
-    previous_notes = []
+    previous_path = []
     for timing, notes in enumerate(all_notes):
       if notes: #if notes contains one or more notes at a specific timing
         note_arrays = []
         for note in notes:
           note = midi_note_to_note(note)
           note_arrays.append(get_notes_in_graph(self.tab.graph, note))
-        best_path = find_shortest_closest_path(self.tab.graph, note_arrays, previous_notes)
+        best_path = find_best_path(self.tab.graph, note_arrays, previous_path)
         # display_path_graph(path_graph)
         # print(best_path, ":", get_path_length(self.tab.graph, best_path))
 
