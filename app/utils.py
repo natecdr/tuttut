@@ -5,6 +5,7 @@ import app.theory as theory
 import math
 import networkx as nx
 import matplotlib.pyplot as plt
+import itertools
 
 def note_number_to_note(note_number): #Converts pretty_midi note number to a Note object
   note = str(pretty_midi.note_number_to_name(note_number))
@@ -68,28 +69,27 @@ def get_notes_in_graph(G, note): #Get all nodes that correspond to a specific no
   return res
 
 def build_path_graph(G, note_arrays): #Returns a path graph corresponding to all possible notes of a chord
-  res = nx.DiGraph()
+  res = nx.Graph()
   
   for x, note_array in enumerate(note_arrays):
     for y, possible_note in enumerate(note_array):
       res.add_node(possible_note, pos = (x, y))
 
-  for idx, note_array in enumerate(note_arrays[:-1]): #Check every array except the last
+  for idx, note_array in enumerate(note_arrays[:-1]): #Go through every array except the last
     for possible_note in note_array:
       for possible_target_note in note_arrays[idx+1]:
-        if (G.nodes[possible_note]["pos"][0] != G.nodes[possible_target_note]["pos"][0]):
-          res.add_edge(possible_note, possible_target_note, distance = G[possible_note][possible_target_note]["distance"])
+        res.add_edge(possible_note, possible_target_note, distance = G[possible_note][possible_target_note]["distance"])
 
   return res 
 
-def find_paths(path_graph, note_arrays): #Returns all possible paths in a path graph
+def find_paths(G, path_graph, note_arrays): #Returns all possible paths in a path graph
   paths = []
   for possible_source_node in note_arrays[0]:
     for possible_target_node in note_arrays[-1]: 
       try:
         path = nx.shortest_path(path_graph, possible_source_node, possible_target_node, weight = "distance")
-        path_length = get_path_length(path_graph, path)
-        paths.append(path)
+        if is_path_valid(G, path):
+          paths.append(path)
       except nx.NetworkXNoPath:
         pass
         #print("No path ???")
@@ -97,15 +97,45 @@ def find_paths(path_graph, note_arrays): #Returns all possible paths in a path g
 
   return paths
 
-def find_shortest_closest_path(G, path_graph, note_arrays, previous_notes): #Returns the path that best matches the distance_length constraints
-  paths = find_paths(path_graph, note_arrays)
-  shortest_closest = paths[0]
+def is_path_valid(G, path):
+  plucked_strings = []
+  for note in path:
+    istring = G.nodes[note]["pos"][0]
+    if istring in plucked_strings:
+      return False
+    else:
+      plucked_strings.append(istring)
+  return True
+
+def find_shortest_closest_path(G, note_arrays, previous_notes): #Returns the path that best matches the distance_length constraints
+  paths = []
+
+  # for i in range(len(note_arrays)):
+  #   note_arrays = roll(note_arrays,i)
+  #   path_graph = build_path_graph(G, note_arrays)
+  #   # display_path_graph(path_graph)
+
+  #   paths += find_paths(G, path_graph, note_arrays)
+
+
+  for note_arrays_permutation in list(itertools.permutations(note_arrays)):
+    path_graph = build_path_graph(G, note_arrays_permutation)
+    # display_path_graph(path_graph)
+
+    paths += find_paths(G, path_graph, note_arrays_permutation)
+
+
+  # path_graph = build_path_graph(G, note_arrays)
+  # paths += find_paths(G, path_graph, note_arrays)
+  
+
+  shortest_closest_path = paths[0]
 
   for path in paths:
-    if is_better_distance_length(G, shortest_closest, path, previous_notes):
-      shortest_closest = path
+    if is_better_distance_length(G, shortest_closest_path, path, previous_notes):
+      shortest_closest_path = path
 
-  return shortest_closest
+  return shortest_closest_path
 
 def get_centroid(G, path): #Returns the centroid of all notes played in a path
   vectors = [G.nodes[note]["pos"] for note in path]
@@ -127,10 +157,7 @@ def is_better_distance_length(G, shortest_closest, path, previous_notes): #Check
   # shortest_closest_centroid = get_centroid(G, shortest_closest)
 
   height = get_height(G, path)
-  if len(previous_notes) > 0:
-    previous_height = get_height(G, previous_notes)
-  else: 
-    previous_height = 0
+  previous_height = get_height(G, previous_notes) if len(previous_notes) > 0 else 0
   shortest_closest_height = get_height(G, shortest_closest)
 
   length = get_path_length(G, path)
@@ -146,7 +173,9 @@ def is_better_distance_length(G, shortest_closest, path, previous_notes): #Check
   distance_weight = 0
 
   #return length * length_weight + distance * distance_weight < shortest_closest_length * length_weight + shortest_closest_distance * distance_weight
-  return length * length_weight + dheight * distance_weight < shortest_closest_length * length_weight + shortest_closest_dheight * distance_weight
+  # return length * length_weight + dheight * distance_weight < shortest_closest_length * length_weight + shortest_closest_dheight * distance_weight
+  return length * length_weight + height * distance_weight < shortest_closest_length * length_weight + shortest_closest_height * distance_weight
+
 
 def get_path_length(G, path): #Returns the total length of a path
   res = 0
@@ -195,3 +224,6 @@ def quantize(midi):
             quantized_notes.append(pretty_midi.Note(velocity = note.velocity, pitch = note.pitch, start = midi.tick_to_time(rounded), end=note.end))
 
         instrument.notes = quantized_notes
+
+def roll(arr, i): #Shifts array
+  return arr[i:] + arr[:i]

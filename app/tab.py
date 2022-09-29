@@ -13,7 +13,7 @@ class Tab:
     self.nstrings = len(tuning.strings)
     self.measures = []
     self.midi = midi
-    self.graph = self.build_complete_graph()
+    self.graph = self._build_complete_graph()
 
   def populate(self):
     for i,time_signature in enumerate(self.time_signatures):
@@ -37,7 +37,7 @@ class Tab:
       notes = np.concatenate((notes, self.measures[i].get_all_notes()), axis = 1)
     return notes
     
-  def build_complete_graph(self):
+  def _build_complete_graph(self):
     note_map = get_all_possible_notes(self.tuning)
     
     complete_graph = nx.Graph()

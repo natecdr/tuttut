@@ -1,4 +1,5 @@
 from enum import Enum
+from sysconfig import get_path
 import numpy as np
 from app.utils import *
 
@@ -140,9 +141,9 @@ class Measure: #Measure class
         for note in notes:
           note = midi_note_to_note(note)
           note_arrays.append(get_notes_in_graph(self.tab.graph, note))
-        path_graph = build_path_graph(self.tab.graph, note_arrays)
-        best_path = find_shortest_closest_path(self.tab.graph, path_graph, note_arrays, previous_notes)
-        display_path_graph(path_graph)
+        best_path = find_shortest_closest_path(self.tab.graph, note_arrays, previous_notes)
+        # display_path_graph(path_graph)
+        # print(best_path, ":", get_path_length(self.tab.graph, best_path))
 
         for path_note in best_path:
           string, fret = self.tab.graph.nodes[path_note]["pos"]
