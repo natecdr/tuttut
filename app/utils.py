@@ -100,19 +100,20 @@ def find_paths(G, path_graph, note_arrays): #Returns all possible paths in a pat
 def is_path_possible(G, path, note_arrays):
   #No 2 fingers on a single string
   plucked_strings = [G.nodes[note]["pos"][0] for note in path]
+  one_per_string = len(plucked_strings) == len(set(plucked_strings))
 
   #No more than 5 fret span
-  used_frets = [G.nodes[note]["pos"][1] for note in path]
+  used_frets = [G.nodes[note]["pos"][1] for note in path if G.nodes[note]["pos"][1] != 0]
+  max_fret_span = (max(used_frets) - min(used_frets)) < 5 if len(used_frets) > 0 else True
 
   #Path doesn't visit more nodes than necessary
-  
-  possible = (len(plucked_strings) == len(set(plucked_strings))
-              and (max(used_frets) - min(used_frets)) < 5
-              and len(path) <= len(note_arrays))
+  right_length = len(path) <= len(note_arrays)
+
+  possible = one_per_string and max_fret_span and right_length
 
   return possible
 
-def find_best_path(G, note_arrays, previous_path): #Returns the path that best matches the distance_length constraints
+def find_best_path(G, note_arrays, previous_path, start_time, previous_start_time): #Returns the path that best matches the distance_length constraints
   paths = []
 
   for note_arrays_permutation in list(itertools.permutations(note_arrays)):
@@ -121,13 +122,13 @@ def find_best_path(G, note_arrays, previous_path): #Returns the path that best m
 
     paths += find_paths(G, path_graph, note_arrays_permutation)
 
-  path_scores = [compute_path_difficulty(G, path, previous_path) for path in paths]
+  path_scores = [compute_path_difficulty(G, path, previous_path, start_time, previous_start_time) for path in paths]
 
   best_path = paths[np.argmin(path_scores)]
 
   return best_path
 
-def compute_path_difficulty(G, path, previous_path):
+def compute_path_difficulty(G, path, previous_path, start_time, previous_start_time):
   height = get_height(G, path)
   previous_height = get_height(G, previous_path) if len(previous_path) > 0 else 0
   dheight = np.abs(height-previous_height)
@@ -136,7 +137,9 @@ def compute_path_difficulty(G, path, previous_path):
 
   nfingers = get_nfingers(G, path)
 
-  difficulty = laplace_distro(dheight, b=1) * 1/(1+dheight) * 1/(1+nfingers) * 1/(1+length)
+  n_changed_strings =get_n_changed_strings(G, path, previous_path)
+
+  difficulty = laplace_distro(dheight, b=start_time-previous_start_time) * 1/(1+dheight) * 1/(1+nfingers) * 1/(1+length) * 1/(1+n_changed_strings)
 
   return 1/difficulty
 
@@ -151,6 +154,14 @@ def get_nfingers(G, path):
       count += 1
     
   return count
+
+def get_n_changed_strings(G, path, previous_path):
+  used_strings = set([G.nodes[note]["pos"][0] for note in path])
+  previous_used_strings = set([G.nodes[note]["pos"][0] for note in previous_path])
+
+  n_changed_strings = len(path) - len(set(used_strings).intersection(previous_used_strings))
+
+  return n_changed_strings
 
 def get_centroid(G, path): #Returns the centroid of all notes played in a path
   vectors = [G.nodes[note]["pos"] for note in path]

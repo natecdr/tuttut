@@ -66,17 +66,19 @@ class Tab:
       res.append(s)
 
     previous_path = []
+    previous_start_time = -1
 
     for measure in self.measures:
       all_notes = measure.get_all_notes()
 
       for timing, notes in enumerate(all_notes):
         if notes: #if notes contains one or more notes at a specific timing
+          start_time = notes[0].start
           note_arrays = []
           for note in notes:
             note = midi_note_to_note(note)
             note_arrays.append(get_notes_in_graph(self.graph, note))
-          best_path = find_best_path(self.graph, note_arrays, previous_path)
+          best_path = find_best_path(self.graph, note_arrays, previous_path, start_time, previous_start_time)
           # display_path_graph(path_graph)
 
           for path_note in best_path:
@@ -86,6 +88,7 @@ class Tab:
           # display_notes_on_graph(self.tab.graph, best_path)
 
           previous_path = best_path
+          previous_start_time = start_time
         res = fill_measure_str(res)
 
         for istring in range(self.nstrings):
