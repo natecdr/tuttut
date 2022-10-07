@@ -11,7 +11,7 @@ First, clone the repo.
 
 Then, place your midi files in the *midis* folder.
 
-To convert the midis to tabs, make sure the repo is the working directory and use : `python midi_tabs.py yourmidifile.mid` in the terminal.
+To convert the midis to tabs, make sure the repo is the working directory and use the command : `python midi_tabs.py yourmidifile.mid` in the terminal.
 
 You should find the generated tabs in the *tabs* folder.
 
