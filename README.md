@@ -1,7 +1,9 @@
 # MIDI to Guitar tabs
-Converts a midi file to ASCII guitar tabs.
+Converts a MIDI file to ASCII guitar tabs.
 
-It mainly uses a graph theory oriented approach as of now.
+## How it works
+
+For each note/chord, every fingering combination is computed and evaluated to choose the best one out of all of them.
 
 ## Using the tool
 
@@ -31,4 +33,4 @@ E ||--------------------|1------------------|1-------------------|3-------------
  ## Limitations
  The generated tabs are often quite different from how a human would play.
  
- Also, the tool can't handle complicated multi-channel MIDI files.
+ Also, the tool can't handle complicated multi-channel MIDI files, but it's not what it's made for.
