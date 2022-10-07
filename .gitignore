@@ -129,3 +129,6 @@ dmypy.json
 .pyre/
 
 misc/
+midis/
+tabs/
+GuitarSet/

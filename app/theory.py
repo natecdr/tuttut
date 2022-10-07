@@ -82,9 +82,12 @@ class Measure: #Measure class
   def populate(self, notes, imeasure, midi):
     measure_length = measure_length_ticks(midi, self.time_signature)
     beat_ticks = np.arange(imeasure*measure_length,imeasure*measure_length + measure_length, step=midi.resolution)
+    
     for ibeat in range(len(self.beats)): 
       current_beat_tick = beat_ticks[ibeat]
-      beat_notes = get_notes_between(midi, notes, current_beat_tick, current_beat_tick + midi.resolution)
+      beat_start = current_beat_tick
+      beat_end = current_beat_tick + midi.resolution
+      beat_notes = get_notes_between(midi, notes, beat_start, beat_end)
       beat = Beat(imeasure, ibeat, self.tab)
       beat.populate(beat_notes, midi, self.time_signature)
       self.beats[ibeat] = beat

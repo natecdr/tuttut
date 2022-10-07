@@ -25,8 +25,11 @@ class Tab:
       for imeasure, measure_tick in enumerate(measure_ticks):
         notes = []
         for instrument in get_non_drum(self.midi.instruments):
-          notes = np.concatenate((notes, get_notes_between(self.midi, instrument.notes, measure_tick, measure_tick + measure_length))) 
+          measure_start = measure_tick
+          measure_end = measure_start + measure_length
+          notes = np.concatenate((notes, get_notes_between(self.midi, instrument.notes, measure_start, measure_end))) 
         notes = sort_notes_by_tick(notes)
+        print([self.midi.time_to_tick(note.start) for note in notes])
         measure = Measure(self, imeasure, time_signature)
         measure.populate(notes, imeasure, self.midi)
         self.measures.append(measure)

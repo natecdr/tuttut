@@ -139,7 +139,7 @@ def compute_path_difficulty(G, path, previous_path, start_time, previous_start_t
 
   n_changed_strings =get_n_changed_strings(G, path, previous_path)
 
-  difficulty = laplace_distro(dheight, b=start_time-previous_start_time) * 1/(1+dheight) * 1/(1+nfingers) * 1/(1+length) * 1/(1+n_changed_strings)
+  difficulty = laplace_distro(dheight, b=start_time-previous_start_time) * 1/(1+height) * 1/(1+nfingers) * 1/(1+length) * 1/(1+n_changed_strings)
 
   return 1/difficulty
 
@@ -217,7 +217,7 @@ def quantize(midi):
     for instrument in midi.instruments:
         quantized_notes = []
         for note in instrument.notes:
-            rounded = round_to_multiple(midi.time_to_tick(note.start), base=10)
+            rounded = round_to_multiple(midi.time_to_tick(note.start), base=midi.resolution/8)
             quantized_notes.append(pretty_midi.Note(velocity = note.velocity, pitch = note.pitch, start = midi.tick_to_time(rounded), end=note.end))
 
         instrument.notes = quantized_notes
