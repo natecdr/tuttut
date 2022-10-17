@@ -40,9 +40,9 @@ class Degree(Enum): #Degree of a note enum
   G = "G"
   Gsharp = "G#"
 
-standard_tuning = [Note(Degree.E, 4), Note(Degree.B, 3), Note(Degree.G, 3), Note(Degree.D, 3), Note(Degree.A, 2), Note(Degree.E, 2)]
-
 class Tuning: #Tuning class
+  standard_tuning = [Note(Degree.E, 4), Note(Degree.B, 3), Note(Degree.G, 3), Note(Degree.D, 3), Note(Degree.A, 2), Note(Degree.E, 2)]
+
   def __init__(self, strings = standard_tuning):
     self._strings = np.array(strings, dtype = Note)
     self.nstrings = len(strings)

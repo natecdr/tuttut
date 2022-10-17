@@ -46,7 +46,6 @@ def get_non_drum(instruments): #Returns all instruments that are non-drums
   return res
 
 def get_all_possible_notes(tuning, nfrets = 20): #Returns all possible_notes on a fretboard for k strings and n frets
-  nstrings = len(tuning.strings)
   res = []
   for string in tuning.strings:
     string_note_number = note_name_to_number(string.degree.value + str(string.octave))
@@ -211,7 +210,7 @@ def display_notes_on_graph(G, path): #Displays notes played on a plt graph
   plt.show()
   
 def round_to_multiple(n, base=10):
-    return base * round(n/base)
+    return int(base * round(n/base))
 
 def quantize(midi):
     for instrument in midi.instruments:
@@ -221,6 +220,3 @@ def quantize(midi):
             quantized_notes.append(pretty_midi.Note(velocity = note.velocity, pitch = note.pitch, start = midi.tick_to_time(rounded), end=note.end))
 
         instrument.notes = quantized_notes
-
-def roll(arr, i): #Shifts array
-  return arr[i:] + arr[:i]
