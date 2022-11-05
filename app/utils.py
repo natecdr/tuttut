@@ -6,6 +6,7 @@ import math
 import networkx as nx
 import matplotlib.pyplot as plt
 import itertools
+from time import time
 
 def note_number_to_note(note_number): #Converts pretty_midi note number to a Note object
   note = str(pretty_midi.note_number_to_name(note_number))
@@ -56,8 +57,18 @@ def get_all_possible_notes(tuning, nfrets = 20): #Returns all possible_notes on 
   
   return res
 
-def distance_between(x, y): #Computes the distance between two points (tuples)
+def distance_between(x, y, string_spacing_mm = 3.5): #Computes the distance between two points (tuples)
+  x = (x[0] * string_spacing_mm, get_fret_distance(x[1]))
+  y = (y[0] * string_spacing_mm, get_fret_distance(y[1]))
   return math.dist(x,y)
+
+def get_fret_distance(nfret, scale_length = 650):
+  res = 0
+  for i in range(nfret):
+    res = scale_length / 17.817
+    scale_length -= res
+  
+  return res
 
 def get_notes_in_graph(G, note): #Get all nodes that correspond to a specific note in a graph
   nodes = list(G.nodes)
@@ -77,9 +88,15 @@ def build_path_graph(G, note_arrays): #Returns a path graph corresponding to all
   for idx, note_array in enumerate(note_arrays[:-1]): #Go through every array except the last
     for possible_note in note_array:
       for possible_target_note in note_arrays[idx+1]:
-        res.add_edge(possible_note, possible_target_note, distance = G[possible_note][possible_target_note]["distance"])
+        distance = G[possible_note][possible_target_note]["distance"]
+        if is_edge_possible(possible_note, possible_target_note, G):
+          res.add_edge(possible_note, possible_target_note, distance = distance)
 
   return res 
+
+def is_edge_possible(possible_note, possible_target_note, G):
+  is_different_string = G.nodes[possible_note]["pos"][0] != G.nodes[possible_target_note]["pos"][0]
+  return is_different_string
 
 def find_paths(G, path_graph, note_arrays): #Returns all possible paths in a path graph
   paths = []
@@ -87,7 +104,7 @@ def find_paths(G, path_graph, note_arrays): #Returns all possible paths in a pat
     for possible_target_node in note_arrays[-1]: 
       try:
         path = nx.shortest_path(path_graph, possible_source_node, possible_target_node, weight = "distance")
-        if is_path_possible(G, path, note_arrays):
+        if not is_path_already_checked(paths, path) and is_path_possible(G, path, note_arrays):
           paths.append(path)
       except nx.NetworkXNoPath:
         pass
@@ -95,6 +112,13 @@ def find_paths(G, path_graph, note_arrays): #Returns all possible paths in a pat
         #display_path_graph(path_graph)
 
   return paths
+
+def is_path_already_checked(paths, current_path):
+  found = False
+  for path in paths:
+    found = set(path) == set(current_path)
+  
+  return found
 
 def is_path_possible(G, path, note_arrays):
   #No 2 fingers on a single string
@@ -122,7 +146,6 @@ def find_best_path(G, note_arrays, previous_path, start_time, previous_start_tim
     paths += find_paths(G, path_graph, note_arrays_permutation)
 
   path_scores = [compute_path_difficulty(G, path, previous_path, start_time, previous_start_time) for path in paths]
-
   best_path = paths[np.argmin(path_scores)]
 
   return best_path
