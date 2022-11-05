@@ -130,6 +130,7 @@ def find_best_path(G, note_arrays, previous_path, start_time, previous_start_tim
 def compute_path_difficulty(G, path, previous_path, start_time, previous_start_time):
   height = get_height(G, path)
   previous_height = get_height(G, previous_path) if len(previous_path) > 0 else 0
+
   dheight = np.abs(height-previous_height)
 
   length = get_path_length(G, path)
@@ -170,8 +171,8 @@ def get_centroid(G, path): #Returns the centroid of all notes played in a path
   return centroid
 
 def get_height(G, path): #Returns the average height on the fretboard of all notes played in a path
-  y = [G.nodes[note]["pos"][1] for note in path]
-  return np.mean(y)
+  y = [G.nodes[note]["pos"][1] for note in path if G.nodes[note]["pos"][1] != 0]
+  return np.mean(y) if len(y)>0 else 0
 
 def get_path_length(G, path): #Returns the total length of a path
   res = 0

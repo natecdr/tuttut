@@ -62,15 +62,15 @@ class Beat: #Beat class
     resolution = midi.resolution
     measure_length = measure_length_ticks(midi, time_signature)
 
-    nsep = max(4, len(notes_to_add)+1)
-
-    self.notes = [[] for i in range(nsep)]
+    self.notes = {}
     
     for note in notes_to_add:
       tick = midi.time_to_tick(note.start) - self.ibeat*resolution - self.imeasure*measure_length
-      # timing = int(np.ceil(tick/resolution*(nsep-1)))
-      timing = int(tick/resolution*(nsep-1))
-      self.notes[timing].append(note)
+      timing = tick/resolution + self.ibeat
+      if timing in self.notes:
+        self.notes[timing].append(note)
+      else:
+        self.notes[timing] = [note]
 
 class Measure: #Measure class
   def __init__(self,tab, imeasure, time_signature):
@@ -93,9 +93,8 @@ class Measure: #Measure class
       self.beats[ibeat] = beat
 
   def get_all_notes(self):
-    notes = self.beats[0].notes
-    
-    for i in range(1, len(self.beats)):
-      notes += self.beats[i].notes
+    notes = {}
+    for beat in self.beats: 
+      notes.update(beat.notes)
 
     return notes

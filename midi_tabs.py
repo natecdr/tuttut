@@ -1,6 +1,6 @@
 import pretty_midi
 from app.tab import Tab
-from app.theory import Tuning, Note, Degree
+from app.theory import Tuning
 import argparse
 import traceback
 

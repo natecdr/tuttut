@@ -4,6 +4,8 @@ from app.theory import Measure
 from app.utils import *
 import networkx as nx
 import json
+import os
+from tqdm import tqdm
 
 class Tab:
   def __init__(self, name, tuning, midi):
@@ -61,7 +63,7 @@ class Tab:
           complete_graph.add_edge(node[0], node_to_link[0], distance = dst)
 
     return complete_graph
-    
+
   def to_string(self):
     res = []
     for string in self.tuning.strings:
@@ -70,19 +72,19 @@ class Tab:
       res.append(s)
 
     for measure in self.tab["measures"]:
-      for event in measure["events"]:
-        if "time_signature_change" in event:
-          numerator, denominator = event["time_signature_change"]
-          current_ts = pretty_midi.TimeSignature(numerator, denominator, event["time"])
+      for ievent, event in enumerate(measure["events"]):
         if "notes" in event:  
           for note in event["notes"]:
             string, fret = note["string"], note["fret"]
-            res[string] += str(fret)       
+            res[string] += str(fret)
+
+        next_event_timing = measure["events"][ievent + 1]["measure_timing"] if ievent < len(measure["events"]) - 1 else 1.0
+        dashes_to_add = max(1, math.floor((next_event_timing - event["measure_timing"]) / (1/16)))
 
         res = fill_measure_str(res)
 
         for istring in range(self.nstrings):
-            res[istring] += "-"
+          res[istring] += "-" * dashes_to_add
         
       for istring in range(self.nstrings):
         res[istring] += "|"
@@ -94,35 +96,41 @@ class Tab:
 
     previous_path = []
     previous_start_time = -1
+    time_sig_index = -1
 
-    for measure in self.measures:
+    for imeasure, measure in enumerate(self.measures):
+      print(f"{imeasure}/{len(self.measures)}")
       res_measure = {"events":[]}
 
       all_notes = measure.get_all_notes()
 
-      for timing, notes in enumerate(all_notes):
-        event = {}
-        if notes: #if notes contains one or more notes at a specific timing
+      for timing, notes in all_notes.items():
+        ts_change = False
+        if notes: #if notes contains one or more notes at a specific timin
           start_time = notes[0].start
           start_time_ticks = int(self.midi.time_to_tick(start_time))
+
           note_arrays = []
           for note in notes:
             note = midi_note_to_note(note)
             note_arrays.append(get_notes_in_graph(self.graph, note))
-          best_path = find_best_path(self.graph, note_arrays, previous_path, start_time, previous_start_time)
 
-          event = {"time":start_time,
-                  "time_ticks":start_time_ticks,
-                  "notes":[]}
+          try:
+            best_path = find_best_path(self.graph, note_arrays, previous_path, start_time, previous_start_time)
+          except Exception as e:
+            print(str(e))
+            print("Note arrays :", note_arrays)
+            print("Notes :", notes)
+            print(midi_note_to_note(notes[0]))
+            print("Measure no.", imeasure)
+            print("")
 
-          for path_note in best_path:
-            string, fret = self.graph.nodes[path_note]["pos"]   
-            event["notes"].append({
-              "degree": str(path_note.degree),
-              "octave": int(path_note.octave),
-              "string": string,
-              "fret": fret
-              })
+          if time_sig_index+1 < len(self.time_signatures) and self.time_signatures[time_sig_index+1].time <= start_time:
+            time_sig_index += 1
+            ts = self.time_signatures[time_sig_index]
+            ts_change = True
+            
+          event = self.build_event(start_time, start_time_ticks, timing, best_path, ts, ts_change)
 
           previous_path = best_path
           previous_start_time = start_time
@@ -133,13 +141,35 @@ class Tab:
 
     self.tab = res
 
+  def build_event(self, start_time, start_time_ticks, timing, best_path, ts, ts_change):
+    event = {"time":start_time,
+            "measure_timing":None,
+            "time_ticks":start_time_ticks,
+            "notes":[]}
+
+    if ts_change:
+      event["time_signature_change"] = [ts.numerator, ts.denominator]
+
+    event["measure_timing"] = timing/ts.numerator
+
+    for path_note in best_path:
+      string, fret = self.graph.nodes[path_note]["pos"]   
+      event["notes"].append({
+        "degree": str(path_note.degree),
+        "octave": int(path_note.octave),
+        "string": string,
+        "fret": fret
+        })
+
+    return event
+
   def to_json(self):
     if self.tab is None:
       return
       
     json_object = json.dumps(self.tab, indent=4)
 
-    with open(self.name + ".json", "w") as outfile:
+    with open(os.path.join("json", self.name + ".json"), "w") as outfile:
         outfile.write(json_object)
 
   def to_ascii(self):
