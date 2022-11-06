@@ -57,7 +57,7 @@ def get_all_possible_notes(tuning, nfrets = 20): #Returns all possible_notes on 
   
   return res
 
-def distance_between(x, y, string_spacing_mm = 3.5): #Computes the distance between two points (tuples)
+def distance_between(x, y, string_spacing_mm = 3.5): #Computes the distance between two points (tuples) according to guitar math
   x = (x[0] * string_spacing_mm, get_fret_distance(x[1]))
   y = (y[0] * string_spacing_mm, get_fret_distance(y[1]))
   return math.dist(x,y)
@@ -65,8 +65,9 @@ def distance_between(x, y, string_spacing_mm = 3.5): #Computes the distance betw
 def get_fret_distance(nfret, scale_length = 650):
   res = 0
   for i in range(nfret):
-    res = scale_length / 17.817
-    scale_length -= res
+    fret_height = scale_length / 17.817
+    res += fret_height
+    scale_length -= fret_height
   
   return res
 
@@ -79,8 +80,8 @@ def get_notes_in_graph(G, note): #Get all nodes that correspond to a specific no
   return res
 
 def build_path_graph(G, note_arrays): #Returns a path graph corresponding to all possible notes of a chord
-  res = nx.Graph()
-  
+  res = nx.DiGraph()
+
   for x, note_array in enumerate(note_arrays):
     for y, possible_note in enumerate(note_array):
       res.add_node(possible_note, pos = (x, y))
@@ -95,16 +96,17 @@ def build_path_graph(G, note_arrays): #Returns a path graph corresponding to all
   return res 
 
 def is_edge_possible(possible_note, possible_target_note, G):
+  is_distance_possible = G[possible_note][possible_target_note]["distance"] < 165
   is_different_string = G.nodes[possible_note]["pos"][0] != G.nodes[possible_target_note]["pos"][0]
-  return is_different_string
+  return is_distance_possible and is_different_string
 
-def find_paths(G, path_graph, note_arrays): #Returns all possible paths in a path graph
+def find_paths(G, path_graph, note_arrays, already_checked): #Returns all possible paths in a path graph
   paths = []
   for possible_source_node in note_arrays[0]:
     for possible_target_node in note_arrays[-1]: 
       try:
         path = nx.shortest_path(path_graph, possible_source_node, possible_target_node, weight = "distance")
-        if not is_path_already_checked(paths, path) and is_path_possible(G, path, note_arrays):
+        if not is_path_already_checked(already_checked, path) and is_path_possible(G, path, note_arrays):
           paths.append(path)
       except nx.NetworkXNoPath:
         pass
@@ -114,11 +116,11 @@ def find_paths(G, path_graph, note_arrays): #Returns all possible paths in a pat
   return paths
 
 def is_path_already_checked(paths, current_path):
-  found = False
   for path in paths:
-    found = set(path) == set(current_path)
+    if set(path) == set(current_path):
+      return True
   
-  return found
+  return False
 
 def is_path_possible(G, path, note_arrays):
   #No 2 fingers on a single string
@@ -143,7 +145,7 @@ def find_best_path(G, note_arrays, previous_path, start_time, previous_start_tim
     path_graph = build_path_graph(G, note_arrays_permutation)
     # display_path_graph(path_graph)
 
-    paths += find_paths(G, path_graph, note_arrays_permutation)
+    paths += find_paths(G, path_graph, note_arrays_permutation, paths)
 
   path_scores = [compute_path_difficulty(G, path, previous_path, start_time, previous_start_time) for path in paths]
   best_path = paths[np.argmin(path_scores)]
@@ -162,9 +164,9 @@ def compute_path_difficulty(G, path, previous_path, start_time, previous_start_t
 
   n_changed_strings =get_n_changed_strings(G, path, previous_path)
 
-  difficulty = laplace_distro(dheight, b=start_time-previous_start_time) * 1/(1+height) * 1/(1+nfingers) * 1/(1+length) * 1/(1+n_changed_strings)
+  easiness = laplace_distro(dheight, b=start_time-previous_start_time) * 1/(1+height) * 1/(1+nfingers) * 1/(1+length) * 1/(1+n_changed_strings)
 
-  return 1/difficulty
+  return 1/easiness
 
 def laplace_distro(x, b, mu=0):
   return (1/(2*b))*math.exp(-abs(x-mu)/(b))
