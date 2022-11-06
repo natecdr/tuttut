@@ -3,6 +3,7 @@ from app.tab import Tab
 from app.theory import Tuning
 import argparse
 import traceback
+from time import time
 
 def init_parser():
     parser = argparse.ArgumentParser(description="MIDI to Guitar Tabs convertor")
@@ -18,12 +19,14 @@ if __name__ == "__main__":
     file += ".mid"
 
   try:
+    start = time()
     f = pretty_midi.PrettyMIDI("./midis/" + file)
     tab = Tab(file[:-4], Tuning(), f)
     tab.populate()
     tab.gen_tab()
     tab.to_ascii()
     tab.to_json()
+    print("Time :", time() - start)
     
   except Exception as e:
     print(traceback.print_exc())
