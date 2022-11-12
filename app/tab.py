@@ -33,7 +33,7 @@ class Tab:
         for instrument in get_non_drum(self.midi.instruments):
           measure_start = measure_tick
           measure_end = measure_start + measure_length
-          notes = np.concatenate((notes, get_notes_between(self.midi, instrument.notes, measure_start, measure_end))) 
+          notes = np.concatenate((notes, get_notes_between(self.midi, instrument.notes, measure_start, measure_end)))
         notes = sort_notes_by_tick(notes)
         measure = Measure(self, imeasure, time_signature)
         measure.populate(notes, imeasure, self.midi)
@@ -44,10 +44,10 @@ class Tab:
     for i in range(1, len(self.measures)):
       notes = np.concatenate((notes, self.measures[i].get_all_notes()), axis = 1)
     return notes
-    
+
   def _build_complete_graph(self):
     note_map = get_all_possible_notes(self.tuning)
-    
+
     complete_graph = nx.Graph()
     for istring, string in enumerate(note_map):
       for inote, note in enumerate(string):
@@ -75,7 +75,7 @@ class Tab:
 
     for measure in self.tab["measures"]:
       for ievent, event in enumerate(measure["events"]):
-        if "notes" in event:  
+        if "notes" in event:
           for note in event["notes"]:
             string, fret = note["string"], note["fret"]
             res[string] += str(fret)
@@ -87,7 +87,7 @@ class Tab:
 
         for istring in range(self.nstrings):
           res[istring] += "-" * dashes_to_add
-        
+
       for istring in range(self.nstrings):
         res[istring] += "|"
 
@@ -96,7 +96,6 @@ class Tab:
   def gen_tab(self):
     res = {"measures":[]}
 
-    previous_start_time = -1
     time_sig_index = -1
 
     present_notes = []
@@ -104,7 +103,7 @@ class Tab:
 
     present_fingerings = []
 
-    transition_matrix = np.array([])
+    emission_matrix = np.array([])
 
     for imeasure, measure in enumerate(self.measures):
       print(f"{imeasure}/{len(self.measures)}")
@@ -117,7 +116,7 @@ class Tab:
         if notes: #if notes contains one or more notes at a specific timing
           start_time = notes[0].start
           start_time_ticks = int(self.midi.time_to_tick(start_time))
-          
+
           note_arrays = []
           for note in notes:
             note = midi_note_to_note(note)
@@ -131,14 +130,14 @@ class Tab:
               present_notes.append(notes_pitches)
               present_fingerings += all_paths
 
-              if len(transition_matrix) > 0:
-                filler = np.zeros((len(all_paths), transition_matrix.shape[1]))
-                transition_matrix = np.vstack((transition_matrix, filler))
-                column = np.vstack((np.vstack(np.zeros(len(transition_matrix)-len(all_paths))), np.vstack(np.ones(len(all_paths)))))
-                transition_matrix = np.hstack((transition_matrix, column))
+              if len(emission_matrix) > 0:
+                filler = np.zeros((len(all_paths), emission_matrix.shape[1]))
+                emission_matrix = np.vstack((emission_matrix, filler))
+                column = np.vstack((np.vstack(np.zeros(len(emission_matrix)-len(all_paths))), np.vstack(np.ones(len(all_paths)))))
+                emission_matrix = np.hstack((emission_matrix, column))
               else:
-                transition_matrix = np.vstack((np.ones(len(all_paths))))
-              
+                emission_matrix = np.vstack((np.ones(len(all_paths))))
+
             notes_sequence.append(present_notes.index(notes_pitches))
           except Exception as e:
             print(traceback.print_exc())
@@ -152,19 +151,21 @@ class Tab:
             time_sig_index += 1
             ts = self.time_signatures[time_sig_index]
             ts_change = True
-            
-          event = self.build_event(start_time, start_time_ticks, timing, ts, ts_change)
 
-          previous_start_time = start_time
+          event = self.build_event(start_time, start_time_ticks, timing, ts, ts_change)
 
         res_measure["events"].append(event)
 
       res["measures"].append(res_measure)
 
-    # emission_matrix = np.zeros((len(present_fingerings), len(present_fingerings)))
-    # print(emission_matrix.shape)
-    # for i in range(len(present_fingerings)):
-    # for j in range()
+    transition_matrix = np.zeros((len(present_fingerings), len(present_fingerings)))
+    for iprevious in range(len(present_fingerings)):
+      difficulties = np.array([1/compute_path_difficulty(self.graph, present_fingerings[icurrent], present_fingerings[iprevious])
+                              for icurrent in range(len(present_fingerings))])
+      difficulties_total = np.sum(difficulties)
+      transition_matrix[iprevious] = np.array([difficulty/difficulties_total for difficulty in difficulties])
+
+    print(transition_matrix)
 
     self.tab = res
 
@@ -180,7 +181,7 @@ class Tab:
     event["measure_timing"] = timing/ts.numerator
 
     # for path_note in best_path:
-    #   string, fret = self.graph.nodes[path_note]["pos"]   
+    #   string, fret = self.graph.nodes[path_note]["pos"]
     #   event["notes"].append({
     #     "degree": str(path_note.degree),
     #     "octave": int(path_note.octave),
@@ -193,7 +194,7 @@ class Tab:
   def to_json(self):
     if self.tab is None:
       return
-      
+
     json_object = json.dumps(self.tab, indent=4)
 
     with open(os.path.join("json", self.name + ".json"), "w") as outfile:
@@ -201,7 +202,7 @@ class Tab:
 
   def to_ascii(self):
     if self.tab is None:
-      return 
+      return
 
     notes_str = self.to_string()
 

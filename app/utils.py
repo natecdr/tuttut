@@ -166,14 +166,14 @@ def is_path_possible(G, path, note_arrays):
   return possible
 
 def find_best_path(G, note_arrays, previous_path, start_time, previous_start_time): #Returns the path that best matches the distance_length constraints
-  paths = find_paths(G, notes_arrays)
+  paths = find_paths(G, note_arrays)
 
   path_scores = [compute_path_difficulty(G, path, previous_path, start_time, previous_start_time) for path in paths]
   best_path = paths[np.argmin(path_scores)]
 
   return best_path
 
-def compute_path_difficulty(G, path, previous_path, start_time):
+def compute_path_difficulty(G, path, previous_path):
   height = get_height(G, path)
   previous_height = get_height(G, previous_path) if len(previous_path) > 0 else 0
 
