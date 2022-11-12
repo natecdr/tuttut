@@ -1,3 +1,4 @@
+import traceback
 import numpy as np
 from pretty_midi.containers import TimeSignature
 from app.theory import Measure
@@ -6,6 +7,7 @@ import networkx as nx
 import json
 import os
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 
 class Tab:
   def __init__(self, name, tuning, midi):
@@ -94,9 +96,15 @@ class Tab:
   def gen_tab(self):
     res = {"measures":[]}
 
-    previous_path = []
     previous_start_time = -1
     time_sig_index = -1
+
+    present_notes = []
+    notes_sequence = []
+
+    present_fingerings = []
+
+    transition_matrix = np.array([])
 
     for imeasure, measure in enumerate(self.measures):
       print(f"{imeasure}/{len(self.measures)}")
@@ -106,19 +114,34 @@ class Tab:
 
       for timing, notes in all_notes.items():
         ts_change = False
-        if notes: #if notes contains one or more notes at a specific timin
+        if notes: #if notes contains one or more notes at a specific timing
           start_time = notes[0].start
           start_time_ticks = int(self.midi.time_to_tick(start_time))
-
+          
           note_arrays = []
           for note in notes:
             note = midi_note_to_note(note)
             note_arrays.append(get_notes_in_graph(self.graph, note))
 
           try:
-            best_path = find_best_path(self.graph, note_arrays, previous_path, start_time, previous_start_time)
+            all_paths = find_all_paths(self.graph, note_arrays)
+
+            notes_pitches = tuple([note.pitch for note in notes])
+            if notes_pitches not in present_notes:
+              present_notes.append(notes_pitches)
+              present_fingerings += all_paths
+
+              if len(transition_matrix) > 0:
+                filler = np.zeros((len(all_paths), transition_matrix.shape[1]))
+                transition_matrix = np.vstack((transition_matrix, filler))
+                column = np.vstack((np.vstack(np.zeros(len(transition_matrix)-len(all_paths))), np.vstack(np.ones(len(all_paths)))))
+                transition_matrix = np.hstack((transition_matrix, column))
+              else:
+                transition_matrix = np.vstack((np.ones(len(all_paths))))
+              
+            notes_sequence.append(present_notes.index(notes_pitches))
           except Exception as e:
-            print(str(e))
+            print(traceback.print_exc())
             print("Note arrays :", note_arrays)
             print("Notes :", notes)
             print(midi_note_to_note(notes[0]))
@@ -130,18 +153,22 @@ class Tab:
             ts = self.time_signatures[time_sig_index]
             ts_change = True
             
-          event = self.build_event(start_time, start_time_ticks, timing, best_path, ts, ts_change)
+          event = self.build_event(start_time, start_time_ticks, timing, ts, ts_change)
 
-          previous_path = best_path
           previous_start_time = start_time
 
         res_measure["events"].append(event)
 
       res["measures"].append(res_measure)
 
+    # emission_matrix = np.zeros((len(present_fingerings), len(present_fingerings)))
+    # print(emission_matrix.shape)
+    # for i in range(len(present_fingerings)):
+    # for j in range()
+
     self.tab = res
 
-  def build_event(self, start_time, start_time_ticks, timing, best_path, ts, ts_change):
+  def build_event(self, start_time, start_time_ticks, timing, ts, ts_change):
     event = {"time":start_time,
             "measure_timing":None,
             "time_ticks":start_time_ticks,
@@ -152,14 +179,14 @@ class Tab:
 
     event["measure_timing"] = timing/ts.numerator
 
-    for path_note in best_path:
-      string, fret = self.graph.nodes[path_note]["pos"]   
-      event["notes"].append({
-        "degree": str(path_note.degree),
-        "octave": int(path_note.octave),
-        "string": string,
-        "fret": fret
-        })
+    # for path_note in best_path:
+    #   string, fret = self.graph.nodes[path_note]["pos"]   
+    #   event["notes"].append({
+    #     "degree": str(path_note.degree),
+    #     "octave": int(path_note.octave),
+    #     "string": string,
+    #     "fret": fret
+    #     })
 
     return event
 
