@@ -165,9 +165,27 @@ class Tab:
       difficulties_total = np.sum(difficulties)
       transition_matrix[iprevious] = np.array([difficulty/difficulties_total for difficulty in difficulties])
 
-    print(transition_matrix)
-
+    # print(notes_sequence)
+    sequence_indices, T1, T2 = viterbi(notes_sequence, transition_matrix, emission_matrix)
+    final_sequence = np.array(present_fingerings, dtype=object)[sequence_indices]
+    
     self.tab = res
+
+    self.populate_tab_notes(final_sequence)
+
+  def populate_tab_notes(self, sequence):
+    ievent = 0
+    for measure in self.tab["measures"]:
+      for event in measure["events"]:
+        for path_note in sequence[ievent]:
+          string, fret = self.graph.nodes[path_note]["pos"]   
+          event["notes"].append({
+            "degree": str(path_note.degree),
+            "octave": int(path_note.octave),
+            "string": string,
+            "fret": fret
+            })
+        ievent += 1
 
   def build_event(self, start_time, start_time_ticks, timing, ts, ts_change):
     event = {"time":start_time,
