@@ -58,8 +58,8 @@ def get_all_possible_notes(tuning, nfrets = 20): #Returns all possible_notes on 
   return res
 
 def distance_between(x, y, string_spacing_mm = 3.5): #Computes the distance between two points (tuples) according to guitar math
-  x = (x[0] * string_spacing_mm, get_fret_distance(x[1]))
-  y = (y[0] * string_spacing_mm, get_fret_distance(y[1]))
+  # x = (x[0] * string_spacing_mm, get_fret_distance(x[1]))
+  # y = (y[0] * string_spacing_mm, get_fret_distance(y[1]))
   return math.dist(x,y)
 
 def get_fret_distance(nfret, scale_length = 650):
@@ -185,7 +185,7 @@ def compute_path_difficulty(G, path, previous_path):
 
   n_changed_strings =get_n_changed_strings(G, path, previous_path)
 
-  easiness = laplace_distro(dheight, b=1) * 1/(1+height) * 1/(1+nfingers) * 1/(1+length) * 1/(1+n_changed_strings)
+  easiness = laplace_distro(dheight, b=1)/2 * 1/(1+height/2) * 1/(1+nfingers/1) * 1/(1+length/1) * 1/(1+n_changed_strings/1)
 
   return 1/easiness
 
@@ -216,9 +216,11 @@ def get_centroid(G, path): #Returns the centroid of all notes played in a path
   centroid = (sum(x) / len(vectors), sum(y) / len(vectors))
   return centroid
 
-def get_height(G, path): #Returns the average height on the fretboard of all notes played in a path
+def get_height(G, path): #Returns the average height on the fretboard of gighest and lowest notes in the path
   y = [G.nodes[note]["pos"][1] for note in path if G.nodes[note]["pos"][1] != 0]
-  return np.mean(y) if len(y)>0 else 0
+
+  # return np.mean(y) if len(y)>0 else 0
+  return (max(y) + min(y))/2 if len(y)>0 else 0
 
 def get_path_length(G, path): #Returns the total length of a path
   res = 0
