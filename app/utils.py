@@ -58,8 +58,8 @@ def get_all_possible_notes(tuning, nfrets = 20): #Returns all possible_notes on 
   return res
 
 def distance_between(x, y, string_spacing_mm = 3.5): #Computes the distance between two points (tuples) according to guitar math
-  x = (x[0] * string_spacing_mm, get_fret_distance(x[1]))
-  y = (y[0] * string_spacing_mm, get_fret_distance(y[1]))
+  x = (x[0]/6, x[1])
+  y = (y[0]/6, y[1])
   return math.dist(x,y)
 
 def get_fret_distance(nfret, scale_length = 650):
@@ -96,22 +96,49 @@ def build_path_graph(G, note_arrays): #Returns a path graph corresponding to all
   return res 
 
 def is_edge_possible(possible_note, possible_target_note, G):
-  is_distance_possible = G[possible_note][possible_target_note]["distance"] < 165
+  is_distance_possible = G[possible_note][possible_target_note]["distance"] < 6
   is_different_string = G.nodes[possible_note]["pos"][0] != G.nodes[possible_target_note]["pos"][0]
   return is_distance_possible and is_different_string
 
-def find_paths(G, path_graph, note_arrays, already_checked): #Returns all possible paths in a path graph
+def find_paths(G, note_arrays): #Returns all possible paths in a path graph
   paths = []
-  for possible_source_node in note_arrays[0]:
-    for possible_target_node in note_arrays[-1]: 
-      try:
-        path = nx.shortest_path(path_graph, possible_source_node, possible_target_node, weight = "distance")
-        if not is_path_already_checked(already_checked, path) and is_path_possible(G, path, note_arrays):
-          paths.append(path)
-      except nx.NetworkXNoPath:
-        pass
-        #print("No path ???")
-        #display_path_graph(path_graph)
+
+  for note_arrays_permutation in list(itertools.permutations(note_arrays)):
+    path_graph = build_path_graph(G, note_arrays_permutation)
+    # display_path_graph(path_graph)
+    for possible_source_node in note_arrays_permutation[0]:
+      for possible_target_node in note_arrays_permutation[-1]: 
+        try:
+          path = nx.shortest_path(path_graph, possible_source_node, possible_target_node, weight = "distance")
+          if not is_path_already_checked(paths, path) and is_path_possible(G, path, note_arrays_permutation):
+            paths.append(tuple(path))
+        except nx.NetworkXNoPath:
+          pass
+          #print("No path ???")
+          #display_path_graph(path_graph)
+
+  return paths
+
+def find_all_paths(G, note_arrays): #Returns all possible paths in a path graph
+  paths = []
+  
+  if len(note_arrays) == 1:
+    return [(note,) for note in note_arrays[0]]
+
+  for note_arrays_permutation in list(itertools.permutations(note_arrays)):
+    path_graph = build_path_graph(G, note_arrays_permutation)
+    # display_path_graph(path_graph)
+    for possible_source_node in note_arrays_permutation[0]:
+      for possible_target_node in note_arrays_permutation[-1]: 
+        try:
+          permutation_paths = nx.all_simple_paths(path_graph, possible_source_node, possible_target_node)
+          for path in permutation_paths:
+            if not is_path_already_checked(paths, path) and is_path_possible(G, path, note_arrays_permutation):
+              paths.append(tuple(path))
+        except nx.NetworkXNoPath:
+          pass
+          #print("No path ???")
+          #display_path_graph(path_graph)
 
   return paths
 
@@ -134,26 +161,18 @@ def is_path_possible(G, path, note_arrays):
   #Path doesn't visit more nodes than necessary
   right_length = len(path) <= len(note_arrays)
 
-  possible = one_per_string and max_fret_span and right_length
-
-  return possible
+  return one_per_string and max_fret_span and right_length
 
 def find_best_path(G, note_arrays, previous_path, start_time, previous_start_time): #Returns the path that best matches the distance_length constraints
-  paths = []
-
-  for note_arrays_permutation in list(itertools.permutations(note_arrays)):
-    path_graph = build_path_graph(G, note_arrays_permutation)
-    # display_path_graph(path_graph)
-
-    paths += find_paths(G, path_graph, note_arrays_permutation, paths)
+  paths = find_paths(G, note_arrays)
 
   path_scores = [compute_path_difficulty(G, path, previous_path, start_time, previous_start_time) for path in paths]
   best_path = paths[np.argmin(path_scores)]
 
   return best_path
 
-def compute_path_difficulty(G, path, previous_path, start_time, previous_start_time):
-  height = get_height(G, path)
+def compute_path_difficulty(G, path, previous_path):
+  height = get_height(G, path, previous_path)
   previous_height = get_height(G, previous_path) if len(previous_path) > 0 else 0
 
   dheight = np.abs(height-previous_height)
@@ -162,9 +181,9 @@ def compute_path_difficulty(G, path, previous_path, start_time, previous_start_t
 
   nfingers = get_nfingers(G, path)
 
-  n_changed_strings =get_n_changed_strings(G, path, previous_path)
+  n_changed_strings = get_n_changed_strings(G, path, previous_path)
 
-  easiness = laplace_distro(dheight, b=start_time-previous_start_time) * 1/(1+height) * 1/(1+nfingers) * 1/(1+length) * 1/(1+n_changed_strings)
+  easiness = laplace_distro(dheight, b=1) * 1/(1+height) * 1/(1+nfingers) * 1/(1+length) * 1/(1+n_changed_strings)
 
   return 1/easiness
 
@@ -195,9 +214,16 @@ def get_centroid(G, path): #Returns the centroid of all notes played in a path
   centroid = (sum(x) / len(vectors), sum(y) / len(vectors))
   return centroid
 
-def get_height(G, path): #Returns the average height on the fretboard of all notes played in a path
+def get_height(G, path, previous_path=None): #Returns the average height on the fretboard of gighest and lowest notes in the path
   y = [G.nodes[note]["pos"][1] for note in path if G.nodes[note]["pos"][1] != 0]
-  return np.mean(y) if len(y)>0 else 0
+
+  if len(y) > 0:
+    return (max(y) + min(y))/2
+    # return min(y)
+  elif previous_path is None:
+    return 0
+  else:
+    return get_height(G, previous_path)
 
 def get_path_length(G, path): #Returns the total length of a path
   res = 0
@@ -246,3 +272,77 @@ def quantize(midi):
             quantized_notes.append(pretty_midi.Note(velocity = note.velocity, pitch = note.pitch, start = midi.tick_to_time(rounded), end=note.end))
 
         instrument.notes = quantized_notes
+
+def viterbi(y, A, B, Pi=None):
+    """
+    Return the MAP estimate of state trajectory of Hidden Markov Model.
+
+    Parameters
+    ----------
+    y : array (T,)
+        Observation state sequence. int dtype.
+    A : array (K, K)
+        State transition matrix. See HiddenMarkovModel.state_transition  for
+        details.
+    B : array (K, M)
+        Emission matrix. See HiddenMarkovModel.emission for details.
+    Pi: optional, (K,)
+        Initial state probabilities: Pi[i] is the probability x[0] == i. If
+        None, uniform initial distribution is assumed (Pi[:] == 1/K).
+
+    Returns
+    -------
+    x : array (T,)
+        Maximum a posteriori probability estimate of hidden state trajectory,
+        conditioned on observation sequence y under the model parameters A, B,
+        Pi.
+    T1: array (K, T)
+        the probability of the most likely path so far
+    T2: array (K, T)
+        the x_j-1 of the most likely path so far
+    """
+    # Cardinality of the state space
+    K = A.shape[0]
+    # Initialize the priors with default (uniform dist) if not given by caller
+    Pi = Pi if Pi is not None else np.full(K, 1 / K)
+    T = len(y)
+    T1 = np.empty((K, T), 'd')
+    T2 = np.empty((K, T), 'B')
+
+    # Initilaize the tracking tables from first observation
+    T1[:, 0] = Pi * B[:, y[0]]
+    T2[:, 0] = 0
+
+    # Iterate through the observations updating the tracking tables
+    for i in range(1, T):
+        T1[:, i] = np.max(T1[:, i - 1] * A.T * B[np.newaxis, :, y[i]].T, 1)
+        T2[:, i] = np.argmax(T1[:, i - 1] * A.T, 1)
+
+    # Build the output, optimal model trajectory
+    x = np.empty(T, 'B')
+    x[-1] = np.argmax(T1[:, T - 1])
+    for i in reversed(range(1, T)):
+        x[i - 1] = T2[x[i], i]
+
+    return x, T1, T2
+
+def build_transition_matrix(G, fingerings):
+    transition_matrix = np.zeros((len(fingerings), len(fingerings)))
+    for iprevious in range(len(fingerings)):
+      difficulties = np.array([1/compute_path_difficulty(G, fingerings[icurrent], fingerings[iprevious])
+                              for icurrent in range(len(fingerings))])
+      difficulties_total = np.sum(difficulties)
+      transition_matrix[iprevious] = np.array([difficulty/difficulties_total for difficulty in difficulties])
+    
+    return transition_matrix
+
+def expand_emission_matrix(emission_matrix, all_paths):
+  if len(emission_matrix) > 0:
+    filler = np.zeros((len(all_paths), emission_matrix.shape[1]))
+    emission_matrix = np.vstack((emission_matrix, filler))
+    column = np.vstack((np.vstack(np.zeros(len(emission_matrix)-len(all_paths))), np.vstack(np.ones(len(all_paths)))))
+    emission_matrix = np.hstack((emission_matrix, column))
+  else:
+    emission_matrix = np.vstack((np.ones(len(all_paths))))
+
+  return emission_matrix

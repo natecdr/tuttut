@@ -133,3 +133,6 @@ midis/
 tabs/
 GuitarSet/
 json/
+val_json/
+
+*.ipynb
