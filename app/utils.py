@@ -325,3 +325,24 @@ def viterbi(y, A, B, Pi=None):
         x[i - 1] = T2[x[i], i]
 
     return x, T1, T2
+
+def build_transition_matrix(G, fingerings):
+    transition_matrix = np.zeros((len(fingerings), len(fingerings)))
+    for iprevious in range(len(fingerings)):
+      difficulties = np.array([1/compute_path_difficulty(G, fingerings[icurrent], fingerings[iprevious])
+                              for icurrent in range(len(fingerings))])
+      difficulties_total = np.sum(difficulties)
+      transition_matrix[iprevious] = np.array([difficulty/difficulties_total for difficulty in difficulties])
+    
+    return transition_matrix
+
+def expand_emission_matrix(emission_matrix, all_paths):
+  if len(emission_matrix) > 0:
+    filler = np.zeros((len(all_paths), emission_matrix.shape[1]))
+    emission_matrix = np.vstack((emission_matrix, filler))
+    column = np.vstack((np.vstack(np.zeros(len(emission_matrix)-len(all_paths))), np.vstack(np.ones(len(all_paths)))))
+    emission_matrix = np.hstack((emission_matrix, column))
+  else:
+    emission_matrix = np.vstack((np.ones(len(all_paths))))
+
+  return emission_matrix

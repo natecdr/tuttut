@@ -130,13 +130,7 @@ class Tab:
               present_notes.append(notes_pitches)
               present_fingerings += all_paths
 
-              if len(emission_matrix) > 0:
-                filler = np.zeros((len(all_paths), emission_matrix.shape[1]))
-                emission_matrix = np.vstack((emission_matrix, filler))
-                column = np.vstack((np.vstack(np.zeros(len(emission_matrix)-len(all_paths))), np.vstack(np.ones(len(all_paths)))))
-                emission_matrix = np.hstack((emission_matrix, column))
-              else:
-                emission_matrix = np.vstack((np.ones(len(all_paths))))
+              emission_matrix = expand_emission_matrix(emission_matrix, all_paths)
 
             notes_sequence.append(present_notes.index(notes_pitches))
           except Exception as e:
@@ -158,14 +152,8 @@ class Tab:
 
       res["measures"].append(res_measure)
 
-    transition_matrix = np.zeros((len(present_fingerings), len(present_fingerings)))
-    for iprevious in range(len(present_fingerings)):
-      difficulties = np.array([1/compute_path_difficulty(self.graph, present_fingerings[icurrent], present_fingerings[iprevious])
-                              for icurrent in range(len(present_fingerings))])
-      difficulties_total = np.sum(difficulties)
-      transition_matrix[iprevious] = np.array([difficulty/difficulties_total for difficulty in difficulties])
+    transition_matrix = build_transition_matrix(self.graph, present_fingerings)
 
-    # print(notes_sequence)
     sequence_indices, T1, T2 = viterbi(notes_sequence, transition_matrix, emission_matrix)
     final_sequence = np.array(present_fingerings, dtype=object)[sequence_indices]
     
