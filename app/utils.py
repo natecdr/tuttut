@@ -58,8 +58,8 @@ def get_all_possible_notes(tuning, nfrets = 20): #Returns all possible_notes on 
   return res
 
 def distance_between(x, y, string_spacing_mm = 3.5): #Computes the distance between two points (tuples) according to guitar math
-  # x = (x[0] * string_spacing_mm, get_fret_distance(x[1]))
-  # y = (y[0] * string_spacing_mm, get_fret_distance(y[1]))
+  x = (x[0]/6, x[1])
+  y = (y[0]/6, y[1])
   return math.dist(x,y)
 
 def get_fret_distance(nfret, scale_length = 650):
@@ -96,7 +96,7 @@ def build_path_graph(G, note_arrays): #Returns a path graph corresponding to all
   return res 
 
 def is_edge_possible(possible_note, possible_target_note, G):
-  is_distance_possible = G[possible_note][possible_target_note]["distance"] < 165
+  is_distance_possible = G[possible_note][possible_target_note]["distance"] < 6
   is_different_string = G.nodes[possible_note]["pos"][0] != G.nodes[possible_target_note]["pos"][0]
   return is_distance_possible and is_different_string
 
@@ -161,9 +161,7 @@ def is_path_possible(G, path, note_arrays):
   #Path doesn't visit more nodes than necessary
   right_length = len(path) <= len(note_arrays)
 
-  possible = one_per_string and max_fret_span and right_length
-
-  return possible
+  return one_per_string and max_fret_span and right_length
 
 def find_best_path(G, note_arrays, previous_path, start_time, previous_start_time): #Returns the path that best matches the distance_length constraints
   paths = find_paths(G, note_arrays)
@@ -174,7 +172,7 @@ def find_best_path(G, note_arrays, previous_path, start_time, previous_start_tim
   return best_path
 
 def compute_path_difficulty(G, path, previous_path):
-  height = get_height(G, path)
+  height = get_height(G, path, previous_path)
   previous_height = get_height(G, previous_path) if len(previous_path) > 0 else 0
 
   dheight = np.abs(height-previous_height)
@@ -183,9 +181,9 @@ def compute_path_difficulty(G, path, previous_path):
 
   nfingers = get_nfingers(G, path)
 
-  n_changed_strings =get_n_changed_strings(G, path, previous_path)
+  n_changed_strings = get_n_changed_strings(G, path, previous_path)
 
-  easiness = laplace_distro(dheight, b=1)/2 * 1/(1+height/2) * 1/(1+nfingers/1) * 1/(1+length/1) * 1/(1+n_changed_strings/1)
+  easiness = laplace_distro(dheight, b=1) * 1/(1+height) * 1/(1+nfingers) * 1/(1+length) * 1/(1+n_changed_strings)
 
   return 1/easiness
 
@@ -216,11 +214,16 @@ def get_centroid(G, path): #Returns the centroid of all notes played in a path
   centroid = (sum(x) / len(vectors), sum(y) / len(vectors))
   return centroid
 
-def get_height(G, path): #Returns the average height on the fretboard of gighest and lowest notes in the path
+def get_height(G, path, previous_path=None): #Returns the average height on the fretboard of gighest and lowest notes in the path
   y = [G.nodes[note]["pos"][1] for note in path if G.nodes[note]["pos"][1] != 0]
 
-  # return np.mean(y) if len(y)>0 else 0
-  return (max(y) + min(y))/2 if len(y)>0 else 0
+  if len(y) > 0:
+    return (max(y) + min(y))/2
+    # return min(y)
+  elif previous_path is None:
+    return 0
+  else:
+    return get_height(G, previous_path)
 
 def get_path_length(G, path): #Returns the total length of a path
   res = 0
@@ -310,7 +313,7 @@ def viterbi(y, A, B, Pi=None):
     T1[:, 0] = Pi * B[:, y[0]]
     T2[:, 0] = 0
 
-    # Iterate throught the observations updating the tracking tables
+    # Iterate through the observations updating the tracking tables
     for i in range(1, T):
         T1[:, i] = np.max(T1[:, i - 1] * A.T * B[np.newaxis, :, y[i]].T, 1)
         T2[:, i] = np.argmax(T1[:, i - 1] * A.T, 1)
