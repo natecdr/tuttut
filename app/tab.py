@@ -123,10 +123,10 @@ class Tab:
             note_arrays.append(get_notes_in_graph(self.graph, note))
 
           try:
-            all_paths = find_all_paths(self.graph, note_arrays)
-
             notes_pitches = tuple([note.pitch for note in notes])
+            
             if notes_pitches not in present_notes:
+              all_paths = find_all_paths(self.graph, note_arrays)
               present_notes.append(notes_pitches)
               present_fingerings += all_paths
 
