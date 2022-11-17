@@ -124,7 +124,7 @@ class Tab:
 
           try:
             notes_pitches = tuple([note.pitch for note in notes])
-            
+
             if notes_pitches not in present_notes:
               all_paths = find_all_paths(self.graph, note_arrays)
               present_notes.append(notes_pitches)
@@ -154,9 +154,11 @@ class Tab:
 
     transition_matrix = build_transition_matrix(self.graph, present_fingerings)
 
-    sequence_indices, T1, T2 = viterbi(notes_sequence, transition_matrix, emission_matrix)
+    sequence_indices = viterbi(notes_sequence, transition_matrix, emission_matrix)
+    sequence_indices = [int(i) for i in sequence_indices]
+
     final_sequence = np.array(present_fingerings, dtype=object)[sequence_indices]
-    
+
     self.tab = res
 
     self.populate_tab_notes(final_sequence)

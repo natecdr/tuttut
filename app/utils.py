@@ -30,14 +30,6 @@ def get_notes_between(midi, notes, begin, end): #Return all notes between two sp
       res.append(note)
 
   return res
-  
-def note_to_fret(string, note): #Converts a Note object to its corresponding fret number on a string
-  string_name = string.degree.value + str(string.octave)
-  note_name = note.degree.value + str(note.octave)
-  n_string = pretty_midi.note_name_to_number(string_name)
-  n_note = pretty_midi.note_name_to_number(note_name)
-
-  return n_note - n_string
 
 def get_non_drum(instruments): #Returns all instruments that are non-drums
   res = []
@@ -73,11 +65,14 @@ def get_fret_distance(nfret, scale_length = 650):
 
 def get_notes_in_graph(G, note): #Get all nodes that correspond to a specific note in a graph
   nodes = list(G.nodes)
+  
   res = []
   for node in nodes:
     if node == note:
       res.append(node)
+
   return res
+  return [node for node in nodes if node == note]
 
 def build_path_graph(G, note_arrays): #Returns a path graph corresponding to all possible notes of a chord
   res = nx.DiGraph()
@@ -272,58 +267,46 @@ def quantize(midi):
 
         instrument.notes = quantized_notes
 
-def viterbi(y, A, B, Pi=None):
-    """
-    Return the MAP estimate of state trajectory of Hidden Markov Model.
+def viterbi(V, a, b, initial_distribution = None):
+    T = len(V)
+    M = a.shape[0]
 
-    Parameters
-    ----------
-    y : array (T,)
-        Observation state sequence. int dtype.
-    A : array (K, K)
-        State transition matrix. See HiddenMarkovModel.state_transition  for
-        details.
-    B : array (K, M)
-        Emission matrix. See HiddenMarkovModel.emission for details.
-    Pi: optional, (K,)
-        Initial state probabilities: Pi[i] is the probability x[0] == i. If
-        None, uniform initial distribution is assumed (Pi[:] == 1/K).
-
-    Returns
-    -------
-    x : array (T,)
-        Maximum a posteriori probability estimate of hidden state trajectory,
-        conditioned on observation sequence y under the model parameters A, B,
-        Pi.
-    T1: array (K, T)
-        the probability of the most likely path so far
-    T2: array (K, T)
-        the x_j-1 of the most likely path so far
-    """
-    # Cardinality of the state space
-    K = A.shape[0]
-    # Initialize the priors with default (uniform dist) if not given by caller
-    Pi = Pi if Pi is not None else np.full(K, 1 / K)
-    T = len(y)
-    T1 = np.empty((K, T), 'd')
-    T2 = np.empty((K, T), 'B')
-
-    # Initilaize the tracking tables from first observation
-    T1[:, 0] = Pi * B[:, y[0]]
-    T2[:, 0] = 0
-
-    # Iterate through the observations updating the tracking tables
-    for i in range(1, T):
-        T1[:, i] = np.max(T1[:, i - 1] * A.T * B[np.newaxis, :, y[i]].T, 1)
-        T2[:, i] = np.argmax(T1[:, i - 1] * A.T, 1)
-
-    # Build the output, optimal model trajectory
-    x = np.empty(T, 'B')
-    x[-1] = np.argmax(T1[:, T - 1])
-    for i in reversed(range(1, T)):
-        x[i - 1] = T2[x[i], i]
-
-    return x, T1, T2
+    initial_distribution = initial_distribution if initial_distribution is not None else np.full(M, 1/M)
+ 
+    omega = np.zeros((T, M))
+    omega[0, :] = np.log(initial_distribution * b[:, V[0]])
+ 
+    prev = np.zeros((T - 1, M))
+ 
+    for t in range(1, T):
+        for j in range(M):
+            # Same as Forward Probability
+            probability = omega[t - 1] + np.log(a[:, j]) + np.log(b[j, V[t]])
+ 
+            # This is our most probable state given previous state at time t (1)
+            prev[t - 1, j] = np.argmax(probability)
+ 
+            # This is the probability of the most probable state (2)
+            omega[t, j] = np.max(probability)
+ 
+    # Path Array
+    S = np.zeros(T)
+ 
+    # Find the most probable last hidden state
+    last_state = np.argmax(omega[T - 1, :])
+ 
+    S[0] = last_state
+ 
+    backtrack_index = 1
+    for i in range(T - 2, -1, -1):
+        S[backtrack_index] = prev[i, int(last_state)]
+        last_state = prev[i, int(last_state)]
+        backtrack_index += 1
+ 
+    # Flip the path array since we were backtracking
+    S = np.flip(S, axis=0)
+ 
+    return S
 
 def build_transition_matrix(G, fingerings):
     transition_matrix = np.zeros((len(fingerings), len(fingerings)))
