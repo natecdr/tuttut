@@ -129,16 +129,15 @@ def find_all_paths(G, note_arrays): #Returns all possible paths in a path graph
     path_graph = build_path_graph(G, note_arrays_permutation)
     # display_path_graph(path_graph)
     for possible_source_node in note_arrays_permutation[0]:
-      for possible_target_node in note_arrays_permutation[-1]: 
-        try:
-          permutation_paths = nx.all_simple_paths(path_graph, possible_source_node, possible_target_node)
-          for path in permutation_paths:
-            if not is_path_already_checked(paths, path) and is_path_possible(G, path, note_arrays_permutation):
-              paths.append(tuple(path))
-        except nx.NetworkXNoPath:
-          pass
-          #print("No path ???")
-          #display_path_graph(path_graph)
+      try:
+        permutation_paths = nx.all_simple_paths(path_graph, possible_source_node, target=note_arrays_permutation[-1])
+        for path in permutation_paths:
+          if not is_path_already_checked(paths, path) and is_path_possible(G, path, note_arrays_permutation):
+            paths.append(tuple(path))
+      except nx.NetworkXNoPath:
+        pass
+        #print("No path ???")
+        #display_path_graph(path_graph)
 
   return paths
 
