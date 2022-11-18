@@ -7,9 +7,14 @@ from time import time
 import numpy as np
 
 def init_parser():
-    parser = argparse.ArgumentParser(description="MIDI to Guitar Tabs convertor")
-    parser.add_argument("source", metavar="src", type=str, help = "Name of the MIDI file to convert")
-    return parser
+  """Initializes the argument parser for execution.
+
+  Returns:
+      argparse.ArgumentParser: The parser object
+  """
+  parser = argparse.ArgumentParser(description="MIDI to Guitar Tabs convertor")
+  parser.add_argument("source", metavar="src", type=str, help = "Name of the MIDI file to convert")
+  return parser
 
 if __name__ == "__main__":
   np.seterr(divide="ignore")
@@ -24,8 +29,6 @@ if __name__ == "__main__":
     start = time()
     f = pretty_midi.PrettyMIDI("./midis/" + file)
     tab = Tab(file[:-4], Tuning(), f)
-    tab.populate()
-    tab.gen_tab()
     tab.to_ascii()
     tab.to_json()
     print("Time :", time() - start)

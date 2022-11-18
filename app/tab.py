@@ -6,12 +6,19 @@ from app.utils import *
 import networkx as nx
 import json
 import os
-from tqdm import tqdm
-import matplotlib.pyplot as plt
 
 class Tab:
+  """Tab object."""
   def __init__(self, name, tuning, midi):
+    """Constructor for the Tab object.
+
+    Args:
+        name (string): Name of the tab
+        tuning (Tuning): Tuning of the instrument for the tab
+        midi (pretty_midi.PrettyMIDI): The MIDI we're trying to convert to tab
+    """
     quantize(midi)
+    
     self.name = name
     self.tuning = tuning
     self.time_signatures = midi.time_signature_changes if len(midi.time_signature_changes) > 0 else [TimeSignature(4, 4, 0)]
@@ -19,9 +26,13 @@ class Tab:
     self.measures = []
     self.midi = midi
     self.graph = self._build_complete_graph()
-    self.tab = None
+    
+    self.populate()
+    
+    self.tab = self.gen_tab()
 
   def populate(self):
+    """Populates tab with Measures."""
     for i,time_signature in enumerate(self.time_signatures):
       measure_length = measure_length_ticks(self.midi, time_signature)
       time_sig_start = time_signature.time
@@ -36,16 +47,18 @@ class Tab:
           notes = np.concatenate((notes, get_notes_between(self.midi, instrument.notes, measure_start, measure_end)))
         notes = sort_notes_by_tick(notes)
         measure = Measure(self, imeasure, time_signature)
-        measure.populate(notes, imeasure, self.midi)
+        measure.populate(notes)
         self.measures.append(measure)
 
-  def get_all_notes(self):
-    notes = self.measures[0].get_all_notes()
-    for i in range(1, len(self.measures)):
-      notes = np.concatenate((notes, self.measures[i].get_all_notes()), axis = 1)
-    return notes
-
   def _build_complete_graph(self):
+    """Builds the complete graph representing the fretboard.
+    
+    Each fret for each string is a node, each node is connected to all the others.
+    Each edge contains the distance between their 2 nodes as their weight.
+
+    Returns:
+        nx.Graph: Graph representing the fretboard
+    """
     note_map = get_all_possible_notes(self.tuning)
 
     complete_graph = nx.Graph()
@@ -67,11 +80,16 @@ class Tab:
     return complete_graph
 
   def to_string(self):
+    """Generates the text for the ascii tabs.
+
+    Returns:
+        list: List containing tab text for each guitar string
+    """
     res = []
     for string in self.tuning.strings:
-      s = string.degree.value
-      s += "||" if len(string.degree.value)>1 else " ||"
-      res.append(s)
+      header = string.degree.value
+      header += "||" if len(header)>1 else " ||"
+      res.append(header)
 
     for measure in self.tab["measures"]:
       for ievent, event in enumerate(measure["events"]):
@@ -81,7 +99,7 @@ class Tab:
             res[string] += str(fret)
 
         next_event_timing = measure["events"][ievent + 1]["measure_timing"] if ievent < len(measure["events"]) - 1 else 1.0
-        dashes_to_add = max(1, math.floor((next_event_timing - event["measure_timing"]) / (1/16)))
+        dashes_to_add = max(1, math.floor((next_event_timing - event["measure_timing"]) * 16))
 
         res = fill_measure_str(res)
 
@@ -94,7 +112,8 @@ class Tab:
     return res
 
   def gen_tab(self):
-    res = {"measures":[]}
+    """Generates the tab data and the fingerings."""
+    tab = {"measures":[]}
 
     time_sig_index = -1
 
@@ -150,7 +169,7 @@ class Tab:
 
         res_measure["events"].append(event)
 
-      res["measures"].append(res_measure)
+      tab["measures"].append(res_measure)
 
     transition_matrix = build_transition_matrix(self.graph, present_fingerings)
 
@@ -159,13 +178,22 @@ class Tab:
 
     final_sequence = np.array(present_fingerings, dtype=object)[sequence_indices]
 
-    self.tab = res
+    tab = self.populate_tab_notes(tab, final_sequence)
+    
+    return tab
 
-    self.populate_tab_notes(final_sequence)
+  def populate_tab_notes(self, tab, sequence):
+    """Populates the tab template with notes and their fingerings.
 
-  def populate_tab_notes(self, sequence):
+    Args:
+        tab (dict): The tab template without notes
+        sequence (list): Sequence of notes and fingerings to be used
+
+    Returns:
+        dict: The final tab with notes and fingerings
+    """
     ievent = 0
-    for measure in self.tab["measures"]:
+    for measure in tab["measures"]:
       for event in measure["events"]:
         for path_note in sequence[ievent]:
           string, fret = self.graph.nodes[path_note]["pos"]   
@@ -176,8 +204,22 @@ class Tab:
             "fret": fret
             })
         ievent += 1
+        
+    return tab
 
   def build_event(self, start_time, start_time_ticks, timing, ts, ts_change):
+    """Builds the template for an event in the tab.
+
+    Args:
+        start_time (float): Time of occurence of the event in seconds
+        start_time_ticks (int): Time of occurence of the event in ticks
+        timing (float): Timing of the event within the measure
+        ts (pretty_midi.TimeSignature): Current time signature at the time of the event
+        ts_change (bool): If the time signature has changed in the current event
+
+    Returns:
+        dict: Template for the event.
+    """
     event = {"time":start_time,
             "measure_timing":None,
             "time_ticks":start_time_ticks,
@@ -188,18 +230,10 @@ class Tab:
 
     event["measure_timing"] = timing/ts.numerator
 
-    # for path_note in best_path:
-    #   string, fret = self.graph.nodes[path_note]["pos"]
-    #   event["notes"].append({
-    #     "degree": str(path_note.degree),
-    #     "octave": int(path_note.octave),
-    #     "string": string,
-    #     "fret": fret
-    #     })
-
     return event
 
   def to_json(self):
+    """Exports the tab to a json file."""
     if self.tab is None:
       return
 
@@ -209,6 +243,7 @@ class Tab:
         outfile.write(json_object)
 
   def to_ascii(self):
+    """Exports the tab to a text file."""
     if self.tab is None:
       return
 
@@ -219,9 +254,9 @@ class Tab:
         file.write(string_notes + "\n")
 
   def __repr__(self):
-    res = ""
-    notes_str = self.to_string()
-    for string_notes in notes_str:
-      res += string_notes + "\n"
+    """Used to print out the tab.
 
-    return res
+    Returns:
+        str: String representation of the tab.
+    """
+    return self.tab
