@@ -65,13 +65,7 @@ def get_fret_distance(nfret, scale_length = 650):
 
 def get_notes_in_graph(G, note): #Get all nodes that correspond to a specific note in a graph
   nodes = list(G.nodes)
-  
-  res = []
-  for node in nodes:
-    if node == note:
-      res.append(node)
 
-  return res
   return [node for node in nodes if node == note]
 
 def build_path_graph(G, note_arrays): #Returns a path graph corresponding to all possible notes of a chord
@@ -132,7 +126,7 @@ def find_all_paths(G, note_arrays): #Returns all possible paths in a path graph
       except nx.NetworkXNoPath:
         pass
         #print("No path ???")
-        #display_path_graph(path_graph)
+        # display_path_graph(path_graph)
 
   return paths
 
@@ -267,21 +261,21 @@ def quantize(midi):
 
         instrument.notes = quantized_notes
 
-def viterbi(V, a, b, initial_distribution = None):
+def viterbi(V, Tm, Em, initial_distribution = None):
     T = len(V)
-    M = a.shape[0]
+    M = Tm.shape[0]
 
     initial_distribution = initial_distribution if initial_distribution is not None else np.full(M, 1/M)
  
     omega = np.zeros((T, M))
-    omega[0, :] = np.log(initial_distribution * b[:, V[0]])
+    omega[0, :] = np.log(initial_distribution * Em[:, V[0]])
  
     prev = np.zeros((T - 1, M))
  
     for t in range(1, T):
         for j in range(M):
             # Same as Forward Probability
-            probability = omega[t - 1] + np.log(a[:, j]) + np.log(b[j, V[t]])
+            probability = omega[t - 1] + np.log(Tm[:, j]) + np.log(Em[j, V[t]])
  
             # This is our most probable state given previous state at time t (1)
             prev[t - 1, j] = np.argmax(probability)

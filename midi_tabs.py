@@ -4,6 +4,7 @@ from app.theory import Tuning
 import argparse
 import traceback
 from time import time
+import numpy as np
 
 def init_parser():
     parser = argparse.ArgumentParser(description="MIDI to Guitar Tabs convertor")
@@ -11,6 +12,7 @@ def init_parser():
     return parser
 
 if __name__ == "__main__":
+  np.seterr(divide="ignore")
   parser = init_parser()
   args = parser.parse_args()
   file = args.source
