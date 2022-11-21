@@ -85,14 +85,29 @@ class Tuning:
     """
     return self._strings
 
-class Beat: #Beat class
+class Beat:
+  """Beat object."""
   def __init__(self, imeasure, ibeat, tab):
+    """Constructor for the Beat object.
+
+    Args:
+        imeasure (int): Measure number in the song
+        ibeat (int): Beat number in the measure
+        tab (Tab): Tab object
+    """
     self.ibeat = ibeat
     self.imeasure = imeasure
     self.tab = tab
     self.notes = None
 
   def populate(self, notes_to_add, midi, time_signature):
+    """Populates the Beat with its corresponding notes.
+
+    Args:
+        notes_to_add (list): List of notes to add to the beat
+        midi (pretty_midi.PrettyMIDI): MIDI object
+        time_signature (pretty_midi.TimeSignature): Current time signature of the song
+    """
     measure_length = measure_length_ticks(midi, time_signature)
 
     self.notes = {}
@@ -106,13 +121,26 @@ class Beat: #Beat class
         self.notes[timing] = [note]
 
 class Measure: #Measure class
+  """Measure object."""
   def __init__(self, tab, imeasure, time_signature):
+    """Constructor for the Measure object.
+
+    Args:
+        tab (Tab): Tab object
+        imeasure (int): Measure number in the song
+        time_signature (pretty_midi.TimeSignature): Current time signature of the song
+    """
     self.beats = np.empty(time_signature.numerator, dtype = Beat)
     self.imeasure = imeasure
     self.time_signature = time_signature
     self.tab = tab
 
   def populate(self, notes):
+    """Populates the Measure with beats.
+
+    Args:
+        notes (list): Notes to add to the beats
+    """
     midi = self.tab.midi
     measure_length = measure_length_ticks(midi, self.time_signature)
     beat_ticks = np.arange(self.imeasure*measure_length,self.imeasure*measure_length + measure_length, step=midi.resolution)
@@ -127,6 +155,11 @@ class Measure: #Measure class
       self.beats[ibeat] = beat
 
   def get_all_notes(self):
+    """Returns all notes in the measure.
+
+    Returns:
+        list: All notes in the measure's beats
+    """
     notes = {}
     for beat in self.beats: 
       notes.update(beat.notes)
