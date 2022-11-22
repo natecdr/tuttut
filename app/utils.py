@@ -6,7 +6,6 @@ import math
 import networkx as nx
 import matplotlib.pyplot as plt
 import itertools
-from time import time
 
 def note_number_to_note(note_number):
   """Converts pretty_midi note number to a Note object.

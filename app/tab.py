@@ -128,20 +128,20 @@ class Tab:
       print(f"{imeasure}/{len(self.measures)}")
       res_measure = {"events":[]}
 
-      all_notes = measure.get_all_notes()
+      measure_notes = measure.get_all_notes()
 
-      for timing, notes in all_notes.items():
+      for timing, notes in measure_notes.items():
         ts_change = False
         if notes: #if notes contains one or more notes at a specific timing
-          start_time = notes[0].start
-          start_time_ticks = int(self.midi.time_to_tick(start_time))
-
-          note_arrays = []
-          for note in notes:
-            note = midi_note_to_note(note)
-            note_arrays.append(get_notes_in_graph(self.graph, note))
-
           try:
+            start_time = notes[0].start
+            start_time_ticks = int(self.midi.time_to_tick(start_time))
+
+            note_arrays = []
+            for note in notes:
+              note = midi_note_to_note(note)
+              note_arrays.append(get_notes_in_graph(self.graph, note))
+
             notes_pitches = tuple([note.pitch for note in notes])
 
             if notes_pitches not in present_notes:
