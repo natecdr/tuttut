@@ -1,7 +1,7 @@
 import traceback
 import numpy as np
 from pretty_midi.containers import TimeSignature
-from app.theory import Measure
+from app.theory import Measure, Note
 from app.utils import *
 import networkx as nx
 import json
@@ -59,7 +59,7 @@ class Tab:
     Returns:
         nx.Graph: Graph representing the fretboard
     """
-    note_map = get_all_possible_notes(self.tuning)
+    note_map = self.tuning.get_all_possible_notes()
 
     complete_graph = nx.Graph()
     for istring, string in enumerate(note_map):
@@ -87,7 +87,7 @@ class Tab:
     """
     res = []
     for string in self.tuning.strings:
-      header = string.degree.value
+      header = string.degree
       header += "||" if len(header)>1 else " ||"
       res.append(header)
 
@@ -139,7 +139,7 @@ class Tab:
 
             note_arrays = []
             for note in notes:
-              note = midi_note_to_note(note)
+              note = Note(note.pitch)
               note_arrays.append(get_notes_in_graph(self.graph, note))
 
             notes_pitches = tuple([note.pitch for note in notes])
@@ -156,7 +156,7 @@ class Tab:
             print(traceback.print_exc())
             print("Note arrays :", note_arrays)
             print("Notes :", notes)
-            print(midi_note_to_note(notes[0]))
+            print(notes[0])
             print("Measure no.", imeasure)
             print("")
 
@@ -198,8 +198,8 @@ class Tab:
         for path_note in sequence[ievent]:
           string, fret = self.graph.nodes[path_note]["pos"]   
           event["notes"].append({
-            "degree": str(path_note.degree),
-            "octave": int(path_note.octave),
+            "degree": path_note.degree,
+            "octave": path_note.octave,
             "string": string,
             "fret": fret
             })

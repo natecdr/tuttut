@@ -7,32 +7,6 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import itertools
 
-def note_number_to_note(note_number):
-  """Converts pretty_midi note number to a Note object.
-
-  Args:
-      note_number (int): MIDI pitch of the note
-
-  Returns:
-      Note: Note object corresponding to the pitch
-  """
-  note = str(pretty_midi.note_number_to_name(note_number))
-  (degree, octave) = (note[:-1], note[-1:]) if not '-' in note else (note[:-2], note[-2:])
-  degree = theory.Degree(degree)
-  
-  return theory.Note(degree, octave)
-
-def midi_note_to_note(note):
-  """Converts a pretty_midi note to a Note object.
-
-  Args:
-      note (pretty_midi.Note): Pretty midi note object
-
-  Returns:
-      Note: Note object
-  """
-  return note_number_to_note(note.pitch)
-
 def measure_length_ticks(midi, time_signature): 
   """Returns the number of ticks in a measure for a midi file.
 
@@ -76,26 +50,6 @@ def get_non_drum(instruments):
       list: List of non-drum instruments
   """
   return [instrument for instrument in instruments if not instrument.is_drum]
-
-def get_all_possible_notes(tuning, nfrets = 20):
-  """Returns all possible_notes on a fretboard for k strings and n frets.
-
-  Args:
-      tuning (Tuning): Tuning object
-      nfrets (int, optional): Number of frets. Defaults to 20.
-
-  Returns:
-      list: All possible notes for the specified fretboard parameters
-  """
-  res = []
-  for string in tuning.strings:
-    string_note_number = note_name_to_number(string.degree.value + str(string.octave))
-    string_notes = []
-    for ifret in range(nfrets):
-      string_notes.append(note_number_to_note(string_note_number+ifret))
-    res.append(string_notes)
-  
-  return res
 
 def distance_between(x, y):
   """Computes the distance between two points.

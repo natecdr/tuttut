@@ -1,51 +1,37 @@
 from enum import Enum
 import numpy as np
 from app.utils import *
+from pretty_midi import note_number_to_name
 
 class Note:
   """Note object."""
-  def __init__(self, degree, octave):
+  def __init__(self, pitch):
     """Constructor for the Note object.
 
     Args:
         degree (Degree): Degree of the note
         octave (int): Octave of the note
     """
-    self._degree = degree
-    self._octave = octave
 
-  @property 
-  def degree(self):
-    """Returns the note's degree.
-
-    Returns:
-        Degree: Note's degree
-    """
-    return self._degree
-
-  @property
-  def octave(self):
-    """Returns the note's octave.
-
-    Returns:
-        int: Note's octave
-    """
-    return self._octave
+    self.pitch = pitch
+    self.name = note_number_to_name(pitch)
+    self.degree = self.name[:-1]
+    self.octave = self.name[-1]
 
   def __eq__(self, other):
     """States the rules for whether or not 2 notes are equal.
     
     Two notes are considered equal if they are note objects and their degrees and octaves are the same.
     """
-    return isinstance(other, Note) and self.degree is other.degree and int(self.octave) == int(other.octave)
+    return isinstance(other, Note) and self.name == other.name
 
   def __hash__(self):
     """Computes the hash for the Note."""
-    return hash((self.degree, self.octave, id(self)))
+    return hash((self.name, id(self)))
 
   def __repr__(self):
     """Returns a representation of the Note."""
-    return self.degree.value + str(self.octave) + "-" + str(hash(self))[2:4]
+    return self.name + "-" + str(hash(self))[2:4]
 
 class Degree(Enum): #Degree of a note enum
   """Degree of a note enum."""
@@ -65,7 +51,7 @@ class Degree(Enum): #Degree of a note enum
 
 class Tuning:
   """Tuning object."""
-  standard_tuning = [Note(Degree.E, 4), Note(Degree.B, 3), Note(Degree.G, 3), Note(Degree.D, 3), Note(Degree.A, 2), Note(Degree.E, 2)]
+  standard_tuning = [Note(64), Note(59), Note(55), Note(50), Note(45), Note(40)]
 
   def __init__(self, strings = standard_tuning):
     """Constructor for the Tuning object.
@@ -73,7 +59,7 @@ class Tuning:
     Args:
         strings (list, optional): List of notes corresponding to the string notes. Defaults to standard_tuning.
     """
-    self._strings = np.array(strings, dtype = Note)
+    self._strings = np.array(strings)
     self.nstrings = len(strings)
 
   @property
@@ -84,6 +70,25 @@ class Tuning:
         list: List of notes corresponding to the string notes
     """
     return self._strings
+  
+  def get_all_possible_notes(self, nfrets = 20):
+    """Returns all possible_notes on a fretboard for k strings and n frets.
+
+    Args:
+        tuning (Tuning): Tuning object
+        nfrets (int, optional): Number of frets. Defaults to 20.
+
+    Returns:
+        list: All possible notes for the specified fretboard parameters
+    """
+    res = []
+    for string in self.strings:
+      string_notes = []
+      for ifret in range(nfrets):
+        string_notes.append(theory.Note(string.pitch + ifret))
+      res.append(string_notes)
+
+    return res
 
 class Beat:
   """Beat object."""
