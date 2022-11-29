@@ -1,6 +1,5 @@
 import numpy as np
 import pretty_midi
-from pretty_midi.utilities import note_name_to_number
 import app.theory as theory
 import math
 import networkx as nx
@@ -43,7 +42,8 @@ def measure_length_ticks(midi, time_signature):
   Returns:
       int: Duration of one measure in ticks
   """
-  measure_length = time_signature.numerator * midi.resolution
+  n_quarter_notes = int(4 * time_signature.numerator / time_signature.denominator)
+  measure_length = n_quarter_notes * midi.resolution
   return measure_length
 
 def get_notes_between(midi, notes, begin, end):
@@ -89,10 +89,10 @@ def get_all_possible_notes(tuning, nfrets = 20):
   """
   res = []
   for string in tuning.strings:
-    string_note_number = note_name_to_number(string.degree.value + str(string.octave))
-    string_notes = []
-    for ifret in range(nfrets):
-      string_notes.append(note_number_to_note(string_note_number+ifret))
+    string_note_number = string.pitch
+
+    string_notes = [note_number_to_note(string_note_number+ifret) for ifret in range(nfrets)]
+    
     res.append(string_notes)
   
   return res
@@ -179,7 +179,7 @@ def is_edge_possible(possible_note, possible_target_note, G):
   Returns:
       bool: Possibility of the connection
   """
-  is_distance_possible = G[possible_note][possible_target_note]["distance"] < 6
+  is_distance_possible = G[possible_note][possible_target_note]["distance"] < 10
   is_different_string = G.nodes[possible_note]["pos"][0] != G.nodes[possible_target_note]["pos"][0]
   return is_distance_possible and is_different_string
 
@@ -284,7 +284,7 @@ def laplace_distro(x, b, mu=0.0):
       mu (float, optional): mu parameter for Laplace distribution. Defaults to 0.
 
   Returns:
-      _type_: _description_
+      float: laplace distribution result
   """
   return (1/(2*b))*math.exp(-abs(x-mu)/(b))
 

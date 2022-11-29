@@ -6,6 +6,7 @@ from app.utils import *
 import networkx as nx
 import json
 import os
+from app.arrangement import Arrangement
 
 class Tab:
   """Tab object."""
@@ -22,6 +23,7 @@ class Tab:
     self.name = name
     self.tuning = tuning
     self.time_signatures = midi.time_signature_changes if len(midi.time_signature_changes) > 0 else [TimeSignature(4, 4, 0)]
+    
     self.nstrings = len(tuning.strings)
     self.measures = []
     self.midi = midi
@@ -111,11 +113,12 @@ class Tab:
 
     return res
 
-  def gen_tab(self):
+  def gen_tab(self, verbose = False):
     """Generates the tab data and the fingerings."""
     tab = {"measures":[]}
 
-    time_sig_index = -1
+    time_sig_index = 0
+    ts = self.time_signatures[time_sig_index]
 
     present_notes = []
     notes_sequence = []
@@ -125,7 +128,9 @@ class Tab:
     emission_matrix = np.array([])
 
     for imeasure, measure in enumerate(self.measures):
-      print(f"{imeasure}/{len(self.measures)}")
+      if verbose:
+        print(f"{imeasure}/{len(self.measures)}")
+        
       res_measure = {"events":[]}
 
       measure_notes = measure.get_all_notes()
@@ -136,11 +141,14 @@ class Tab:
           try:
             start_time = notes[0].start
             start_time_ticks = int(self.midi.time_to_tick(start_time))
+            
+            # print("Notes before :", notes)
+            # arrangement = Arrangement(notes, self.tuning)
+            # arrangement.fit_notes_to_tuning()
+            # notes = arrangement.notes
+            # print("Notes after :", notes)
 
-            note_arrays = []
-            for note in notes:
-              note = midi_note_to_note(note)
-              note_arrays.append(get_notes_in_graph(self.graph, note))
+            note_arrays = [get_notes_in_graph(self.graph, midi_note_to_note(note)) for note in notes]
 
             notes_pitches = tuple([note.pitch for note in notes])
 
