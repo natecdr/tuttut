@@ -1,36 +1,11 @@
 import numpy as np
 import pretty_midi
+from pretty_midi.utilities import note_name_to_number
 import app.theory as theory
 import math
 import networkx as nx
 import matplotlib.pyplot as plt
 import itertools
-
-def note_number_to_note(note_number):
-  """Converts pretty_midi note number to a Note object.
-
-  Args:
-      note_number (int): MIDI pitch of the note
-
-  Returns:
-      Note: Note object corresponding to the pitch
-  """
-  note = str(pretty_midi.note_number_to_name(note_number))
-  (degree, octave) = (note[:-1], note[-1:]) if not '-' in note else (note[:-2], note[-2:])
-  degree = theory.Degree(degree)
-  
-  return theory.Note(degree, octave)
-
-def midi_note_to_note(note):
-  """Converts a pretty_midi note to a Note object.
-
-  Args:
-      note (pretty_midi.Note): Pretty midi note object
-
-  Returns:
-      Note: Note object
-  """
-  return note_number_to_note(note.pitch)
 
 def measure_length_ticks(midi, time_signature): 
   """Returns the number of ticks in a measure for a midi file.
@@ -42,8 +17,7 @@ def measure_length_ticks(midi, time_signature):
   Returns:
       int: Duration of one measure in ticks
   """
-  n_quarter_notes = int(4 * time_signature.numerator / time_signature.denominator)
-  measure_length = n_quarter_notes * midi.resolution
+  measure_length = time_signature.numerator * midi.resolution
   return measure_length
 
 def get_notes_between(midi, notes, begin, end):
@@ -77,26 +51,6 @@ def get_non_drum(instruments):
   """
   return [instrument for instrument in instruments if not instrument.is_drum]
 
-def get_all_possible_notes(tuning, nfrets = 20):
-  """Returns all possible_notes on a fretboard for k strings and n frets.
-
-  Args:
-      tuning (Tuning): Tuning object
-      nfrets (int, optional): Number of frets. Defaults to 20.
-
-  Returns:
-      list: All possible notes for the specified fretboard parameters
-  """
-  res = []
-  for string in tuning.strings:
-    string_note_number = string.pitch
-
-    string_notes = [note_number_to_note(string_note_number+ifret) for ifret in range(nfrets)]
-    
-    res.append(string_notes)
-  
-  return res
-
 def distance_between(x, y):
   """Computes the distance between two points.
 
@@ -126,7 +80,7 @@ def get_fret_distance(nfret, scale_length = 650):
     fret_height = scale_length / 17.817
     res += fret_height
     scale_length -= fret_height
-  
+
   return res
 
 def get_notes_in_graph(G, note):
@@ -179,7 +133,7 @@ def is_edge_possible(possible_note, possible_target_note, G):
   Returns:
       bool: Possibility of the connection
   """
-  is_distance_possible = G[possible_note][possible_target_note]["distance"] < 10
+  is_distance_possible = G[possible_note][possible_target_note]["distance"] < 6
   is_different_string = G.nodes[possible_note]["pos"][0] != G.nodes[possible_target_note]["pos"][0]
   return is_distance_possible and is_different_string
 
@@ -275,6 +229,27 @@ def compute_path_difficulty(G, path, previous_path):
   
   return 1/easiness
 
+def compute_isolated_path_difficulty(G, path):
+  """Computes the difficulty of a path not taking into account the previous one played.
+
+  Args:
+      G (networkx.Graph): Fretboard graph
+      path (tuple): Path to compute the difficulty for
+      previous_path (tuple): Previous played path
+
+  Returns:
+      float: Difficulty metric of a path
+  """
+  height = get_height(G, path)
+  
+  length = get_path_length(G, path)
+
+  nfingers = get_nfingers(G, path)
+  
+  easiness = 1/(1+height) * 1/(1+nfingers) * 1/(1+length)
+  
+  return 1/easiness
+
 def laplace_distro(x, b, mu=0.0):
   """Returns the y value for x on a laplace distribution.
 
@@ -284,7 +259,7 @@ def laplace_distro(x, b, mu=0.0):
       mu (float, optional): mu parameter for Laplace distribution. Defaults to 0.
 
   Returns:
-      float: laplace distribution result
+      _type_: _description_
   """
   return (1/(2*b))*math.exp(-abs(x-mu)/(b))
 
@@ -513,10 +488,21 @@ def build_transition_matrix(G, fingerings):
   for iprevious in range(len(fingerings)):
     difficulties = np.array([1/compute_path_difficulty(G, fingerings[icurrent], fingerings[iprevious])
                             for icurrent in range(len(fingerings))])
-    difficulties_total = np.sum(difficulties)
-    transition_matrix[iprevious] = np.array([difficulty/difficulties_total for difficulty in difficulties])
+    transition_matrix[iprevious] = difficulties_to_probabilities(difficulties)
   
   return transition_matrix
+
+def difficulties_to_probabilities(difficulties):
+  """Transforms a list of difficulties to a list of probabilities.
+
+  Args:
+      difficulties (list): List of difficulties
+
+  Returns:
+      list: List of probabilities
+  """
+  difficulties_total = np.sum(difficulties)
+  return np.array([difficulty/difficulties_total for difficulty in difficulties])
 
 def expand_emission_matrix(emission_matrix, all_paths):
   """Expands the emission matrix as new notes come by.
@@ -537,3 +523,10 @@ def expand_emission_matrix(emission_matrix, all_paths):
     emission_matrix = np.vstack((np.ones(len(all_paths))))
 
   return emission_matrix
+
+def display_notes_on_graph(G, path): #Displays notes played on a plt graph
+  pos = nx.get_node_attributes(G,'pos')
+  plt.figure(figsize=(2,6))
+  nx.draw(G, pos)
+  nx.draw(G.subgraph(path), pos = pos, node_color="red")
+  plt.show()
