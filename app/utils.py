@@ -80,7 +80,7 @@ def get_fret_distance(nfret, scale_length = 650):
     fret_height = scale_length / 17.817
     res += fret_height
     scale_length -= fret_height
-  
+
   return res
 
 def get_notes_in_graph(G, note):
@@ -220,12 +220,31 @@ def compute_path_difficulty(G, path, previous_path):
   dheight = np.abs(height-previous_height)
 
   length = get_path_length(G, path)
-
-  nfingers = get_nfingers(G, path)
-
+  
   n_changed_strings = get_n_changed_strings(G, path, previous_path)
   
-  easiness = laplace_distro(dheight, b=1) * 1/(1+height) * 1/(1+nfingers) * 1/(1+length) * 1/(1+n_changed_strings)
+  easiness = laplace_distro(dheight, b=1) * 1/(1+height) * 1/(1+length) * 1/(1+n_changed_strings)
+  
+  return 1/easiness
+
+def compute_isolated_path_difficulty(G, path):
+  """Computes the difficulty of a path not taking into account the previous one played.
+
+  Args:
+      G (networkx.Graph): Fretboard graph
+      path (tuple): Path to compute the difficulty for
+      previous_path (tuple): Previous played path
+
+  Returns:
+      float: Difficulty metric of a path
+  """
+  height = get_height(G, path)
+  
+  length = get_path_length(G, path)
+
+  nfingers = get_nfingers(G, path)
+  
+  easiness = 1/(1+height) * 1/(1+length)
   
   return 1/easiness
 
@@ -467,10 +486,22 @@ def build_transition_matrix(G, fingerings):
   for iprevious in range(len(fingerings)):
     difficulties = np.array([1/compute_path_difficulty(G, fingerings[icurrent], fingerings[iprevious])
                             for icurrent in range(len(fingerings))])
-    difficulties_total = np.sum(difficulties)
-    transition_matrix[iprevious] = np.array([difficulty/difficulties_total for difficulty in difficulties])
+    
+    transition_matrix[iprevious] = difficulties_to_probabilities(difficulties)
   
   return transition_matrix
+
+def difficulties_to_probabilities(difficulties):
+  """Transforms a list of difficulties to a list of probabilities.
+
+  Args:
+      difficulties (list): List of difficulties
+
+  Returns:
+      list: List of probabilities
+  """
+  difficulties_total = np.sum(difficulties)
+  return np.array([difficulty/difficulties_total for difficulty in difficulties])
 
 def expand_emission_matrix(emission_matrix, all_paths):
   """Expands the emission matrix as new notes come by.
@@ -491,3 +522,10 @@ def expand_emission_matrix(emission_matrix, all_paths):
     emission_matrix = np.vstack((np.ones(len(all_paths))))
 
   return emission_matrix
+
+def display_notes_on_graph(G, path): #Displays notes played on a plt graph
+  pos = nx.get_node_attributes(G,'pos')
+  plt.figure(figsize=(2,6))
+  nx.draw(G, pos)
+  nx.draw(G.subgraph(path), pos = pos, node_color="red")
+  plt.show()

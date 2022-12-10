@@ -70,12 +70,12 @@ class Tab:
 
     for node in complete_graph_nodes:
       for node_to_link in complete_graph_nodes:
-        if not node is node_to_link:
-          if node_to_link[1]['pos'][1] == 0:
-            dst = 0
-          else:
-            dst = distance_between(node[1]['pos'], node_to_link[1]['pos'])
-          complete_graph.add_edge(node[0], node_to_link[0], distance = dst)
+        # if not node is node_to_link:
+        if node_to_link[1]['pos'][1] == 0:
+          dst = 0
+        else:
+          dst = distance_between(node[1]['pos'], node_to_link[1]['pos'])
+        complete_graph.add_edge(node[0], node_to_link[0], distance = dst)
 
     return complete_graph
 
@@ -113,7 +113,11 @@ class Tab:
 
   def gen_tab(self):
     """Generates the tab data and the fingerings."""
-    tab = {"measures":[]}
+    tab = {}
+    
+    tab["tuning"] = [string.pitch for string in self.tuning.strings]
+    
+    tab["measures"] = []
 
     time_sig_index = -1
 
@@ -123,9 +127,9 @@ class Tab:
     present_fingerings = []
 
     emission_matrix = np.array([])
+    initial_probabilities = None
 
     for imeasure, measure in enumerate(self.measures):
-      print(f"{imeasure}/{len(self.measures)}")
       res_measure = {"events":[]}
 
       measure_notes = measure.get_all_notes()
@@ -133,19 +137,26 @@ class Tab:
       for timing, notes in measure_notes.items():
         ts_change = False
         if notes: #if notes contains one or more notes at a specific timing
-          try:
+          try:      
             start_time = notes[0].start
             start_time_ticks = int(self.midi.time_to_tick(start_time))
+            
+            notes_pitches = list(set([note.pitch for note in notes]))
+            notes = [Note(pitch) for pitch in notes_pitches]
 
-            note_arrays = []
-            for note in notes:
-              note = Note(note.pitch)
-              note_arrays.append(get_notes_in_graph(self.graph, note))
-
-            notes_pitches = tuple([note.pitch for note in notes])
+            note_arrays =[get_notes_in_graph(self.graph, note) for note in notes]
+            note_arrays = [note_array for note_array in note_arrays if len(note_array) > 0]
+            
+            if len(note_arrays) == 0:
+              continue
 
             if notes_pitches not in present_notes:
               all_paths = find_all_paths(self.graph, note_arrays)
+              
+              if initial_probabilities is None:
+                isolated_difficulties = [1/compute_isolated_path_difficulty(self.graph, path) for path in all_paths]
+                initial_probabilities = difficulties_to_probabilities(isolated_difficulties)
+              
               present_notes.append(notes_pitches)
               present_fingerings += all_paths
 
@@ -153,13 +164,16 @@ class Tab:
 
             notes_sequence.append(present_notes.index(notes_pitches))
           except Exception as e:
-            print(traceback.print_exc())
+            print("==================================")
+            print(traceback.format_exc())
+            print("----------------------------------")
             print("Note arrays :", note_arrays)
             print("Notes :", notes)
-            print(notes[0])
+            print(Note(notes[0].pitch).name)
             print("Measure no.", imeasure)
-            print("")
-
+            print("==================================")
+            break
+          
           if time_sig_index+1 < len(self.time_signatures) and self.time_signatures[time_sig_index+1].time <= start_time:
             time_sig_index += 1
             ts = self.time_signatures[time_sig_index]
@@ -172,8 +186,10 @@ class Tab:
       tab["measures"].append(res_measure)
 
     transition_matrix = build_transition_matrix(self.graph, present_fingerings)
+    
+    initial_probabilities = np.hstack((initial_probabilities, np.zeros(len(transition_matrix) - len(initial_probabilities))))
 
-    sequence_indices = viterbi(notes_sequence, transition_matrix, emission_matrix)
+    sequence_indices = viterbi(notes_sequence, transition_matrix, emission_matrix, initial_probabilities)
     sequence_indices = [int(i) for i in sequence_indices]
 
     final_sequence = np.array(present_fingerings, dtype=object)[sequence_indices]

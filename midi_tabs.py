@@ -32,7 +32,7 @@ if __name__ == "__main__":
     tab.to_ascii()
     tab.to_json()
     print("Time :", time() - start)
-    
+
   except Exception as e:
     print(traceback.print_exc())
     print("There was an error. You might want to try another MIDI file. The tool tends to struggle with more complicated multi-channel MIDI files.")

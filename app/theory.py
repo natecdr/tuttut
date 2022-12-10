@@ -1,6 +1,7 @@
 from enum import Enum
 import numpy as np
-from app.utils import *
+import app.utils as utils
+import app.theory as theory
 from pretty_midi import note_number_to_name
 
 class Note:
@@ -23,7 +24,7 @@ class Note:
     
     Two notes are considered equal if they are note objects and their degrees and octaves are the same.
     """
-    return isinstance(other, Note) and self.name == other.name
+    return isinstance(other, Note) and self.pitch == other.pitch
 
   def __hash__(self):
     """Computes the hash for the Note."""
@@ -113,7 +114,7 @@ class Beat:
         midi (pretty_midi.PrettyMIDI): MIDI object
         time_signature (pretty_midi.TimeSignature): Current time signature of the song
     """
-    measure_length = measure_length_ticks(midi, time_signature)
+    measure_length = utils.measure_length_ticks(midi, time_signature)
 
     self.notes = {}
     
@@ -147,14 +148,14 @@ class Measure: #Measure class
         notes (list): Notes to add to the beats
     """
     midi = self.tab.midi
-    measure_length = measure_length_ticks(midi, self.time_signature)
+    measure_length = utils.measure_length_ticks(midi, self.time_signature)
     beat_ticks = np.arange(self.imeasure*measure_length,self.imeasure*measure_length + measure_length, step=midi.resolution)
     
     for ibeat in range(len(self.beats)): 
       current_beat_tick = beat_ticks[ibeat]
       beat_start = current_beat_tick
       beat_end = current_beat_tick + midi.resolution
-      beat_notes = get_notes_between(midi, notes, beat_start, beat_end)
+      beat_notes = utils.get_notes_between(midi, notes, beat_start, beat_end)
       beat = Beat(self.imeasure, ibeat, self.tab)
       beat.populate(beat_notes, midi, self.time_signature)
       self.beats[ibeat] = beat
