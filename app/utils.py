@@ -220,12 +220,10 @@ def compute_path_difficulty(G, path, previous_path):
   dheight = np.abs(height-previous_height)
 
   length = get_path_length(G, path)
-
-  nfingers = get_nfingers(G, path)
-
+  
   n_changed_strings = get_n_changed_strings(G, path, previous_path)
   
-  easiness = laplace_distro(dheight, b=1) * 1/(1+height) * 1/(1+nfingers) * 1/(1+length) * 1/(1+n_changed_strings)
+  easiness = laplace_distro(dheight, b=1) * 1/(1+height) * 1/(1+length) * 1/(1+n_changed_strings)
   
   return 1/easiness
 
@@ -246,7 +244,7 @@ def compute_isolated_path_difficulty(G, path):
 
   nfingers = get_nfingers(G, path)
   
-  easiness = 1/(1+height) * 1/(1+nfingers) * 1/(1+length)
+  easiness = 1/(1+height) * 1/(1+length)
   
   return 1/easiness
 
@@ -488,6 +486,7 @@ def build_transition_matrix(G, fingerings):
   for iprevious in range(len(fingerings)):
     difficulties = np.array([1/compute_path_difficulty(G, fingerings[icurrent], fingerings[iprevious])
                             for icurrent in range(len(fingerings))])
+    
     transition_matrix[iprevious] = difficulties_to_probabilities(difficulties)
   
   return transition_matrix
