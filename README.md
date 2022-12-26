@@ -1,10 +1,6 @@
 # MIDI to Guitar tabs
 Converts a MIDI file to ASCII guitar tabs.
 
-## How it works
-
-For each note/chord, every fingering combination is computed and evaluated to choose the best one out of all of them.
-
 ## Using the tool
 
 First, clone the repo.
@@ -30,7 +26,41 @@ E ||--------------------|1------------------|1-------------------|3-------------
 ```
  This is the generated tab for a twinkle twinkle little star midi.
  
- ## Limitations
- The generated tabs are often quite different from how a human would play.
- 
- Also, the tool can't handle complicated multi-channel MIDI files, but it's not what it's made for.
+## Limitations
+The generated tabs are often different from how a human would play.
+
+Also, the tool can't handle complicated multi-channel MIDI files, but it's not what it's made for.
+
+# The science behind the tool
+
+## Glossary
+
+Fingering : Finger positions used by a guitar player to play a note or multiple notes.
+
+## Why the problem is interesting 
+
+The problem of generating guitar tablatures is not trivial because a single note can be played at multiple distinct positions on a guitar. Pressing a different fret on a different string can generate a sound that has the same frequency. A tablature essentially dictates the player the best finger positions to use to play a sequence of notes.
+The problem would be easy if a note could only be played on one position, it would be enough just to indicate the notes one by one and there would be no ambiguity on the way to play them, but it's not that simple.
+
+For example, you must take into account the notes played before to choose the finger positions that will minimize the difficulty of transitioning between two fingerings for the player. Typically, the positions must be as close to each other as possible.
+Another example : if you want to play a chord - multiple notes simultaneously - there are dozens of combinations of possible fingerings to play that chord. You want to find the optimal fingerings to play these chords.
+This problem is referred to as the fingering problem.
+
+*All the possible fingerings to play a C :*
+![All the possible fingerings to play a C](https://i.imgur.com/6WWheRR.png)
+
+## How it works
+
+The sequence of notes and fingerings is modeled as a Hidden Markov Model (HMM), with the fingerings being the hidden states and the notes being the observed states.
+
+Our goal is to predict the most likely sequence of hidden states using the sequence of observed states.
+
+To find that sequence, we can make use of the Viterbi algorithm. This algorithm outputs the most likely sequence of hidden states using the sequence of observed states, the transition probabilities and the emission probabilities of the model.
+
+Transition probabilities are the probabilities to go from one hidden state to some other hidden state. In our case, it's the probability to transition from a fingering to some other one.
+
+Emission probabilities are the probabilities to get an observed state given a hidden state. In our case, it can be seen as the probability that a certain chord will be played given a certain fingering. 
+
+
+
+For each note/chord, every fingering combination is computed and evaluated to choose the best one out of all of them.
