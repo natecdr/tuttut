@@ -31,11 +31,12 @@ The generated tabs are often different from how a human would play.
 
 Also, the tool can't handle complicated multi-channel MIDI files, but it's not what it's made for.
 
-# The science behind the tool
+# Behind the tool
 
 ## Glossary
 
 Fingering : Finger positions used by a guitar player to play a note or multiple notes.
+
 Chord : Multiple notes played simultaneously.
 
 ## Why the problem is interesting 
@@ -67,6 +68,8 @@ To build these matrices, we first explore the MIDI file chronologically. For eac
 
 The guitar fretboard is modeled as a complete graph, in the graph theory sense. The nodes correspond to the frets of for each string and the edges represent the distance between the nodes. Being a complete graph, all the nodes are connected by an edge to each other.
 This graph is what enables us to find all the ways that a set of notes can be played, using a simple depth-first search algorithm.
+
+In order to compute the transition probabilities between the fingerings, we use a difficulty metric that is defined as :
 
 
 
