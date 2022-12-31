@@ -70,6 +70,6 @@ The guitar fretboard is modeled as a complete graph, in the graph theory sense. 
 This graph is what enables us to find all the ways that a set of notes can be played, using a simple depth-first search algorithm.
 
 In order to compute the transition probabilities between the fingerings, we use a difficulty metric that is defined as :
-
+![DIfficulty metric](https://i.imgur.com/dpe6lDJ.png)
 
 
