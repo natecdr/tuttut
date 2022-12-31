@@ -36,6 +36,7 @@ Also, the tool can't handle complicated multi-channel MIDI files, but it's not w
 ## Glossary
 
 Fingering : Finger positions used by a guitar player to play a note or multiple notes.
+Chord : Multiple notes played simultaneously.
 
 ## Why the problem is interesting 
 
@@ -59,8 +60,13 @@ To find that sequence, we can make use of the Viterbi algorithm. This algorithm 
 
 Transition probabilities are the probabilities to go from one hidden state to some other hidden state. In our case, it's the probability to transition from a fingering to some other one.
 
-Emission probabilities are the probabilities to get an observed state given a hidden state. In our case, it can be seen as the probability that a certain chord will be played given a certain fingering. 
+Emission probabilities are the probabilities to get an observed state given a hidden state. In our case, it can be seen as the probability that a certain set of notes will be heard given a certain fingering. 
+
+These probabilities are stored in a transition matrix and an emission matrix.
+To build these matrices, we first explore the MIDI file chronologically. For each note or chord that we encounter in the file, we will compute all the fingerings that will produce these notes.
+
+The guitar fretboard is modeled as a complete graph, in the graph theory sense. The nodes correspond to the frets of for each string and the edges represent the distance between the nodes. Being a complete graph, all the nodes are connected by an edge to each other.
+This graph is what enables us to find all the ways that a set of notes can be played, using a simple depth-first search algorithm.
 
 
 
-For each note/chord, every fingering combination is computed and evaluated to choose the best one out of all of them.
