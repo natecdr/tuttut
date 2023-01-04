@@ -55,12 +55,10 @@ This problem is referred to as the fingering problem.
 
 The sequence of notes and fingerings is modeled as a Hidden Markov Model (HMM), with the fingerings being the hidden states and the notes being the observed states.
 
-Our goal is to predict the most likely sequence of hidden states using the sequence of observed states.
-
+Our goal is to predict the most likely sequence of hidden states using the sequence of observed states.\
 To find that sequence, we can make use of the Viterbi algorithm. This algorithm outputs the most likely sequence of hidden states using the sequence of observed states, the transition probabilities and the emission probabilities of the model.
 
-Transition probabilities are the probabilities to go from one hidden state to some other hidden state. In our case, it's the probability to transition from a fingering to some other one.
-
+Transition probabilities are the probabilities to go from one hidden state to some other hidden state. In our case, it's the probability to transition from a fingering to some other one.\
 Emission probabilities are the probabilities to get an observed state given a hidden state. In our case, it can be seen as the probability that a certain set of notes will be heard given a certain fingering. 
 
 These probabilities are stored in a transition matrix and an emission matrix.
@@ -72,4 +70,14 @@ This graph is what enables us to find all the ways that a set of notes can be pl
 In order to compute the transition probabilities between the fingerings, we use a difficulty metric that is defined as :
 ![DIfficulty metric](https://i.imgur.com/dpe6lDJ.png)
 
+For each of the possible fingerings for a set of notes, we compute all the difficulties transitioning from one fingering to all the others, and we transform these difficulties into probabilities i.e the transitions with the highest difficulties will have the lowest probabilites.\
+That is how we populate the transition matrix. It's a 2D matrix containing all the probabilities to transition from one fingering to another.
+
+*Example of how a transition matrix might look like, values are inaccurate and the matrix may be way bigger :*
+![Transition matrix](https://i.imgur.com/0slagAT.png)
+
+While exploring the notes, we also populate the emission matrix with 0's and 1's which correspond to the probabilites that a fingering produce a set of notes. It just does or doesn't.
+
+*Example of how an emission matrix might look like, the matrix may be way bigger :*
+![Emission matrix](https://i.imgur.com/Iq84EGD.png)
 
