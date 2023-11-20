@@ -203,7 +203,7 @@ def is_path_possible(G, path, note_arrays):
 
   return one_per_string and max_fret_span and right_length
 
-def compute_path_difficulty(G, path, previous_path):
+def compute_path_difficulty(G, path, previous_path, weights):
   """Computes the difficulty of a path.
 
   Args:
@@ -223,7 +223,7 @@ def compute_path_difficulty(G, path, previous_path):
   
   n_changed_strings = get_n_changed_strings(G, path, previous_path)
   
-  easiness = laplace_distro(dheight, b=1) * 1/(1+height) * 1/(1+length) * 1/(1+n_changed_strings)
+  easiness = laplace_distro(dheight, b=weights["b"]) * 1/(1+height * weights["height"]) * 1/(1+length * weights["length"]) * 1/(1+n_changed_strings * weights["n_changed_strings"])
   
   return 1/easiness
 
@@ -241,8 +241,6 @@ def compute_isolated_path_difficulty(G, path):
   height = get_height(G, path)
   
   length = get_path_length(G, path)
-
-  nfingers = get_nfingers(G, path)
   
   easiness = 1/(1+height) * 1/(1+length)
   
@@ -472,7 +470,7 @@ def viterbi(V, Tm, Em, initial_distribution = None):
 
   return S
 
-def build_transition_matrix(G, fingerings):
+def build_transition_matrix(G, fingerings, weights):
   """Builds the transition matrix according to all the present fingerings.
 
   Args:
@@ -484,7 +482,7 @@ def build_transition_matrix(G, fingerings):
   """
   transition_matrix = np.zeros((len(fingerings), len(fingerings)))
   for iprevious in range(len(fingerings)):
-    difficulties = np.array([1/compute_path_difficulty(G, fingerings[icurrent], fingerings[iprevious])
+    difficulties = np.array([1/compute_path_difficulty(G, fingerings[icurrent], fingerings[iprevious], weights)
                             for icurrent in range(len(fingerings))])
     
     transition_matrix[iprevious] = difficulties_to_probabilities(difficulties)
