@@ -39,4 +39,61 @@ class TestGraphUtils(unittest.TestCase):
         nfret = 20
         self.assertAlmostEqual(graph_utils.get_fret_distance(nfret, scale_length=scale_length), 452.11, places=1)
         
+    def test_get_notes_in_graph(self):
+        pass
+    
+    def test_build_path_graph(self):
+        pass
+    
+    def test_is_edge_possible(self):
+        pass
+    
+    def test_find_all_paths(self):
+        pass
+    
+    def test_is_path_already_checked(self):
+        pass
+    
+    def test_is_path_possible(self):
+        pass
+    
+    def test_compute_path_difficulty(self):
+        pass
+    
+    def test_compute_isolated_path_difficulty(self):
+        pass
+    
+    def test_laplace_distro(self):
+        pass
+    
+    def test_get_nfingers(self):
+        pass
+    
+    def test_get_n_changed_strings(self):
+        pass
+    
+    def test_get_height(self):
+        pass
+    
+    def test_get_path_length(self):
+        pass
+    
+    def test_display_path_graph(self):
+        pass
+    
+    def test_viterbi(self):
+        pass
+    
+    def test_build_transition_matrix(self):
+        pass
+    
+    def test_difficulties_to_probabilities(self):
+        pass
+    
+    def test_expand_emission_matrix(self):
+        pass
+    
+    def test_display_notes_on_graph(self):
+        pass
+        
         
