@@ -73,7 +73,6 @@ class Tab:
 
     for node in complete_graph_nodes:
       for node_to_link in complete_graph_nodes:
-        # if not node is node_to_link:
         if node_to_link[1]['pos'][1] == 0:
           dst = 0
         else:
