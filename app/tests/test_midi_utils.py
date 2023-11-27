@@ -3,7 +3,7 @@ import pretty_midi
 
 from app import midi_utils
 
-class TestTab(unittest.TestCase):
+class TestMidiUtils(unittest.TestCase):
     def setUp(self):
         pass
     
@@ -62,5 +62,56 @@ class TestTab(unittest.TestCase):
         
         self.assertEqual(midi_utils.get_non_drum(instruments), [instruments[1]])
         
-if __name__ == "__main__":
-    unittest.main()
+    def test_fill_measure_str(self):
+        str = [
+            'E ||', 
+            'B ||1', 
+            'G ||', 
+            'D ||-2', 
+            'A ||3', 
+            'E ||'
+        ]
+        
+        self.assertEqual(midi_utils.fill_measure_str(str),
+                         [
+                            'E ||--', 
+                            'B ||1-', 
+                            'G ||--', 
+                            'D ||-2', 
+                            'A ||3-', 
+                            'E ||--'
+                         ])
+        
+    def test_sort_notes_by_tick(self):        
+        notes = [
+            pretty_midi.Note(velocity=100, pitch = 60, start = 0, end = 1),
+            pretty_midi.Note(velocity=100, pitch = 60, start = 1, end = 2),
+            pretty_midi.Note(velocity=100, pitch = 60, start = 2.5, end = 3),
+            pretty_midi.Note(velocity=100, pitch = 60, start = 3, end = 3.5)
+        ]
+        
+        unsorted_notes = {
+            notes[3],
+            notes[1],
+            notes[0],
+            notes[2]
+        }
+        
+        self.assertEqual(len(midi_utils.sort_notes_by_tick(unsorted_notes)), len(notes))
+        
+        self.assertEqual(midi_utils.sort_notes_by_tick(notes), notes)
+        
+    def test_round_to_multiple(self):
+        base = 5
+        
+        to_round = 2 
+        self.assertEqual(midi_utils.round_to_multiple(to_round, base), 0)
+        
+        to_round = 111
+        self.assertEqual(midi_utils.round_to_multiple(to_round, base), 110)
+        
+        to_round = -3
+        self.assertEqual(midi_utils.round_to_multiple(to_round, base), -5)
+        
+    def test_quantize(self):
+        pass

@@ -4,8 +4,9 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import itertools
 
-def distance_between(x, y):
-  """Computes the distance between two points.
+def distance_between(p1, p2):
+  """Computes the distance between two points. 
+  Distance between 2 strings is assumed to be 1/6.
 
   Args:
       x (tuple): Source point
@@ -14,9 +15,9 @@ def distance_between(x, y):
   Returns:
       float: Distance between the two points
   """
-  x = (x[0]/6, x[1])
-  y = (y[0]/6, y[1])
-  return math.dist(x,y)
+  p1 = (p1[0]/6, p1[1])
+  p2 = (p2[0]/6, p2[1])
+  return math.dist(p1,p2)
 
 def get_fret_distance(nfret, scale_length = 650):
   """Returns the distance of the fret from the nut.
