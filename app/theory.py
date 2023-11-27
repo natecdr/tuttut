@@ -93,7 +93,7 @@ class Tuning:
     return res
 
 class Beat:
-  """Beat object."""
+  """Beat class."""
   def __init__(self, imeasure, ibeat, tab):
     """Constructor for the Beat object.
 
@@ -127,9 +127,9 @@ class Beat:
       else:
         self.notes[timing] = [note]
 
-class Measure: #Measure class
-  """Measure object."""
-  def __init__(self, tab, imeasure, time_signature):
+class Measure: 
+  """Measure class."""
+  def __init__(self, tab, imeasure, time_signature, notes=None):
     """Constructor for the Measure object.
 
     Args:
@@ -141,6 +141,9 @@ class Measure: #Measure class
     self.imeasure = imeasure
     self.time_signature = time_signature
     self.tab = tab
+    
+    if notes is not None:
+      self.populate(notes)
 
   def populate(self, notes):
     """Populates the Measure with beats.

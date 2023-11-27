@@ -422,3 +422,8 @@ def display_notes_on_graph(G, path):
   nx.draw(G, pos)
   nx.draw(G.subgraph(path), pos = pos, node_color="red")
   plt.show()
+  
+def display_complete_graph(complete_graph):
+  positions = nx.get_node_attributes(complete_graph, "pos")
+  nx.draw(complete_graph, pos=positions)
+  plt.show()
