@@ -53,6 +53,7 @@ class Degree(Enum): #Degree of a note enum
 class Tuning:
   """Tuning object."""
   standard_tuning = [Note(64), Note(59), Note(55), Note(50), Note(45), Note(40)]
+  standard_ukulele_tuning = [Note(69), Note(64), Note(60), Note(67)]
 
   def __init__(self, strings = standard_tuning):
     """Constructor for the Tuning object.

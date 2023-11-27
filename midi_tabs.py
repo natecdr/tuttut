@@ -1,6 +1,6 @@
 import pretty_midi
 from app.tab import Tab
-from app.theory import Tuning
+from app.theory import Tuning, Note
 import argparse
 import traceback
 from time import time
@@ -21,7 +21,7 @@ if __name__ == "__main__":
   np.seterr(divide="ignore")
   parser = init_parser()
   args = parser.parse_args()
-  
+
   file = args.source.with_suffix(".mid")
 
   try:
