@@ -1,4 +1,4 @@
-from app.utils import *
+from app.midi_utils import *
 from app.theory import Note
 
 class Arrangement():

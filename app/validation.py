@@ -1,4 +1,4 @@
-from app.utils import *
+from app.midi_utils import *
 
 def get_tab_positions(tab_json):
   positions = []

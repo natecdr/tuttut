@@ -136,3 +136,4 @@ json/
 val_json/
 
 *.ipynb
+.vscode

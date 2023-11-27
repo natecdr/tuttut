@@ -2,10 +2,12 @@ import traceback
 import numpy as np
 from pretty_midi.containers import TimeSignature
 from app.theory import Measure, Note
-from app.utils import *
+from app.midi_utils import *
+from app.graph_utils import *
 import networkx as nx
 import json
 import os
+from pathlib import Path
 
 class Tab:
   """Tab object."""
@@ -266,7 +268,7 @@ class Tab:
 
     notes_str = self.to_string()
 
-    with open(f"./tabs/{self.name}.txt","w") as file:
+    with open(Path("./tabs", self.name).with_suffix(".txt"),"w") as file:
       for string_notes in notes_str:
         file.write(string_notes + "\n")
 
