@@ -1,5 +1,4 @@
-from app.utils import *
-import traceback
+from app.midi_utils import *
 
 def get_tab_positions(tab_json):
   positions = []
@@ -12,14 +11,14 @@ def get_tab_positions(tab_json):
   
   return positions
 
-def get_tab_difficulty(tab):
+def get_tab_difficulty(tab, weights):
   total_difficulty = 0
   positions = get_tab_positions(tab)
   for i in range(len(positions)):
-    total_difficulty += get_position_difficulty(positions[i], positions[i-1] if i > 0 else None)
+    total_difficulty += get_position_difficulty(positions[i], positions[i-1] if i > 0 else None, weights)
   return total_difficulty
 
-def get_position_difficulty(position, previous_position):
+def get_position_difficulty(position, previous_position, weights):
   position = tuple(pos for pos in position if len(pos) != 0)
   previous_position = tuple(pos for pos in previous_position if len(pos) != 0) if previous_position is not None else None
   
@@ -31,11 +30,9 @@ def get_position_difficulty(position, previous_position):
 
   span = get_span(position)
 
-  nfingers = get_nfingers(position)
-
   n_changed_strings = get_n_changed_strings(position, previous_position)
   
-  easiness = laplace_distro(dheight, b=1) * 1/(1+height) * 1/(1+nfingers) * 1/(1+span) * 1/(1+n_changed_strings)
+  easiness = laplace_distro(dheight, b=weights["b"]) * 1/(1+height * weights["height"]) * 1/(1+span * weights["length"]) * 1/(1+n_changed_strings * weights["n_changed_strings"])
   
   return 1/easiness
 

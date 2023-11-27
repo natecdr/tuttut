@@ -1,6 +1,6 @@
 from enum import Enum
 import numpy as np
-import app.utils as utils
+import app.midi_utils as midi_utils
 import app.theory as theory
 from pretty_midi import note_number_to_name
 
@@ -53,6 +53,7 @@ class Degree(Enum): #Degree of a note enum
 class Tuning:
   """Tuning object."""
   standard_tuning = [Note(64), Note(59), Note(55), Note(50), Note(45), Note(40)]
+  standard_ukulele_tuning = [Note(69), Note(64), Note(60), Note(67)]
 
   def __init__(self, strings = standard_tuning):
     """Constructor for the Tuning object.
@@ -114,7 +115,7 @@ class Beat:
         midi (pretty_midi.PrettyMIDI): MIDI object
         time_signature (pretty_midi.TimeSignature): Current time signature of the song
     """
-    measure_length = utils.measure_length_ticks(midi, time_signature)
+    measure_length = midi_utils.measure_length_ticks(midi, time_signature)
 
     self.notes = {}
     
@@ -148,14 +149,14 @@ class Measure: #Measure class
         notes (list): Notes to add to the beats
     """
     midi = self.tab.midi
-    measure_length = utils.measure_length_ticks(midi, self.time_signature)
+    measure_length = midi_utils.measure_length_ticks(midi, self.time_signature)
     beat_ticks = np.arange(self.imeasure*measure_length,self.imeasure*measure_length + measure_length, step=midi.resolution)
     
     for ibeat in range(len(self.beats)): 
       current_beat_tick = beat_ticks[ibeat]
       beat_start = current_beat_tick
       beat_end = current_beat_tick + midi.resolution
-      beat_notes = utils.get_notes_between(midi, notes, beat_start, beat_end)
+      beat_notes = midi_utils.get_notes_between(midi, notes, beat_start, beat_end)
       beat = Beat(self.imeasure, ibeat, self.tab)
       beat.populate(beat_notes, midi, self.time_signature)
       self.beats[ibeat] = beat

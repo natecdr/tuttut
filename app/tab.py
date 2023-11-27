@@ -2,14 +2,16 @@ import traceback
 import numpy as np
 from pretty_midi.containers import TimeSignature
 from app.theory import Measure, Note
-from app.utils import *
+from app.midi_utils import *
+from app.graph_utils import *
 import networkx as nx
 import json
 import os
+from pathlib import Path
 
 class Tab:
   """Tab object."""
-  def __init__(self, name, tuning, midi):
+  def __init__(self, name, tuning, midi, weights = None):
     """Constructor for the Tab object.
 
     Args:
@@ -26,6 +28,7 @@ class Tab:
     self.measures = []
     self.midi = midi
     self.graph = self._build_complete_graph()
+    self.weights = {"b":1, "height":1, "length":1, "n_changed_strings":1} if weights is None else weights
     
     self.populate()
     
@@ -185,7 +188,7 @@ class Tab:
 
       tab["measures"].append(res_measure)
 
-    transition_matrix = build_transition_matrix(self.graph, present_fingerings)
+    transition_matrix = build_transition_matrix(self.graph, present_fingerings, self.weights)
     
     initial_probabilities = np.hstack((initial_probabilities, np.zeros(len(transition_matrix) - len(initial_probabilities))))
 
@@ -265,7 +268,7 @@ class Tab:
 
     notes_str = self.to_string()
 
-    with open(f"./tabs/{self.name}.txt","w") as file:
+    with open(Path("./tabs", self.name).with_suffix(".txt"),"w") as file:
       for string_notes in notes_str:
         file.write(string_notes + "\n")
 

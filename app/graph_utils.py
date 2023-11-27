@@ -1,58 +1,12 @@
 import numpy as np
-import pretty_midi
-from pretty_midi.utilities import note_name_to_number
-import app.theory as theory
 import math
 import networkx as nx
 import matplotlib.pyplot as plt
 import itertools
 
-def measure_length_ticks(midi, time_signature): 
-  """Returns the number of ticks in a measure for a midi file.
-
-  Args:
-      midi (pretty_midi.PrettyMIDI): MIDI object
-      time_signature (pretty_midi.TimeSignature): Current time signature 
-
-  Returns:
-      int: Duration of one measure in ticks
-  """
-  measure_length = time_signature.numerator * midi.resolution
-  return measure_length
-
-def get_notes_between(midi, notes, begin, end):
-  """Return all notes between two specific timings in a midi file.
-
-  Args:
-      midi (pretty_midi.PrettyMIDI): MIDI object
-      notes (list): Notes to search in
-      begin (int): Timing of the lower bound in ticks
-      end (int): Timing of the upper bound in ticks
-
-  Returns:
-      list: Notes between the lower and upper bounds
-  """
-  res = []
-  for note in notes:
-    start = midi.time_to_tick(note.start)
-    if start >= begin and start< end:
-      res.append(note)
-
-  return res
-
-def get_non_drum(instruments):
-  """Returns all instruments that are non-drums.
-
-  Args:
-      instruments (list): List of pretty_midi.Instrument objects in the MIDI
-
-  Returns:
-      list: List of non-drum instruments
-  """
-  return [instrument for instrument in instruments if not instrument.is_drum]
-
-def distance_between(x, y):
-  """Computes the distance between two points.
+def distance_between(p1, p2):
+  """Computes the distance between two points. 
+  Distance between 2 strings is assumed to be 1/6.
 
   Args:
       x (tuple): Source point
@@ -61,9 +15,9 @@ def distance_between(x, y):
   Returns:
       float: Distance between the two points
   """
-  x = (x[0]/6, x[1])
-  y = (y[0]/6, y[1])
-  return math.dist(x,y)
+  p1 = (p1[0]/6, p1[1])
+  p2 = (p2[0]/6, p2[1])
+  return math.dist(p1,p2)
 
 def get_fret_distance(nfret, scale_length = 650):
   """Returns the distance of the fret from the nut.
@@ -203,7 +157,7 @@ def is_path_possible(G, path, note_arrays):
 
   return one_per_string and max_fret_span and right_length
 
-def compute_path_difficulty(G, path, previous_path):
+def compute_path_difficulty(G, path, previous_path, weights):
   """Computes the difficulty of a path.
 
   Args:
@@ -223,7 +177,7 @@ def compute_path_difficulty(G, path, previous_path):
   
   n_changed_strings = get_n_changed_strings(G, path, previous_path)
   
-  easiness = laplace_distro(dheight, b=1) * 1/(1+height) * 1/(1+length) * 1/(1+n_changed_strings)
+  easiness = laplace_distro(dheight, b=weights["b"]) * 1/(1+height * weights["height"]) * 1/(1+length * weights["length"]) * 1/(1+n_changed_strings * weights["n_changed_strings"])
   
   return 1/easiness
 
@@ -241,8 +195,6 @@ def compute_isolated_path_difficulty(G, path):
   height = get_height(G, path)
   
   length = get_path_length(G, path)
-
-  nfingers = get_nfingers(G, path)
   
   easiness = 1/(1+height) * 1/(1+length)
   
@@ -354,72 +306,7 @@ def display_path_graph(path_graph, show_distances=True, show_names=True):
     nx.draw_networkx_edge_labels(path_graph, pos, edge_labels = edge_labels, label_pos = 0.6)
 
   plt.show()
-
-def fill_measure_str(str_array):
-  """Fills column of a measure so that all strings are of equal length.
-
-  Args:
-      str_array (list): List of the strings (text) representing the guitar strings
-
-  Returns:
-      list: New updated list of strings
-  """
-  maxlen = len(max(str_array, key = len))
-  res = []
-  for str in str_array:
-    res.append(str.ljust(maxlen, "-"))
-  return res
   
-def sort_notes_by_tick(notes):
-  """Returns sorted notes by tick.
-
-  Args:
-      notes (list): List of notes to sort 
-
-  Returns:
-      list: New sorted list of notes
-  """
-  return sorted(notes, key = lambda n: n.start)
-
-def display_notes_on_graph(G, path):
-  """Displays notes played on a plt graph.
-
-  Args:
-      G (networkx.Graph): Fretboard graph
-      path (tuple): Path to display
-  """
-  pos = nx.get_node_attributes(G,'pos')
-  plt.figure(figsize=(2,6))
-  nx.draw(G, pos)
-  nx.draw(G.subgraph(path), pos = pos, node_color="red")
-  plt.show()
-  
-def round_to_multiple(n, base=10):
-  """Rounds a number to the closest multiple of a base.
-
-  Args:
-      n (int): Number to round
-      base (int, optional): Multiple base to round to. Defaults to 10.
-
-  Returns:
-      int: Rounded number
-  """
-  return int(base * round(n/base))
-
-def quantize(midi):
-  """Quantizes a MIDI object.
-
-  Args:
-      midi (pretty_midi.PrettyMIDI): MIDI object to quantize
-  """
-  for instrument in midi.instruments:
-      quantized_notes = []
-      for note in instrument.notes:
-          rounded = round_to_multiple(midi.time_to_tick(note.start), base=midi.resolution/8)
-          quantized_notes.append(pretty_midi.Note(velocity = note.velocity, pitch = note.pitch, start = midi.tick_to_time(rounded), end=note.end))
-
-      instrument.notes = quantized_notes
-
 def viterbi(V, Tm, Em, initial_distribution = None):
   """Implementation of the Viterbi algorithm.
 
@@ -472,7 +359,7 @@ def viterbi(V, Tm, Em, initial_distribution = None):
 
   return S
 
-def build_transition_matrix(G, fingerings):
+def build_transition_matrix(G, fingerings, weights):
   """Builds the transition matrix according to all the present fingerings.
 
   Args:
@@ -484,7 +371,7 @@ def build_transition_matrix(G, fingerings):
   """
   transition_matrix = np.zeros((len(fingerings), len(fingerings)))
   for iprevious in range(len(fingerings)):
-    difficulties = np.array([1/compute_path_difficulty(G, fingerings[icurrent], fingerings[iprevious])
+    difficulties = np.array([1/compute_path_difficulty(G, fingerings[icurrent], fingerings[iprevious], weights)
                             for icurrent in range(len(fingerings))])
     
     transition_matrix[iprevious] = difficulties_to_probabilities(difficulties)
@@ -522,8 +409,14 @@ def expand_emission_matrix(emission_matrix, all_paths):
     emission_matrix = np.vstack((np.ones(len(all_paths))))
 
   return emission_matrix
+  
+def display_notes_on_graph(G, path):
+  """Displays notes played on a plt graph.
 
-def display_notes_on_graph(G, path): #Displays notes played on a plt graph
+  Args:
+      G (networkx.Graph): Fretboard graph
+      path (tuple): Path to display
+  """
   pos = nx.get_node_attributes(G,'pos')
   plt.figure(figsize=(2,6))
   nx.draw(G, pos)

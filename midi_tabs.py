@@ -1,10 +1,11 @@
 import pretty_midi
 from app.tab import Tab
-from app.theory import Tuning
+from app.theory import Tuning, Note
 import argparse
 import traceback
 from time import time
 import numpy as np
+from pathlib import Path
 
 def init_parser():
   """Initializes the argument parser for execution.
@@ -13,22 +14,20 @@ def init_parser():
       argparse.ArgumentParser: The parser object
   """
   parser = argparse.ArgumentParser(description="MIDI to Guitar Tabs convertor")
-  parser.add_argument("source", metavar="src", type=str, help = "Name of the MIDI file to convert")
+  parser.add_argument("source", metavar="src", type=Path, help = "Name of the MIDI file to convert")
   return parser
 
 if __name__ == "__main__":
   np.seterr(divide="ignore")
   parser = init_parser()
   args = parser.parse_args()
-  file = args.source
 
-  if not file.endswith(".mid"):
-    file += ".mid"
+  file = args.source.with_suffix(".mid")
 
   try:
     start = time()
-    f = pretty_midi.PrettyMIDI("./midis/" + file)
-    tab = Tab(file[:-4], Tuning(), f)
+    f = pretty_midi.PrettyMIDI(Path("./midis", file).as_posix())
+    tab = Tab(file.stem, Tuning(), f)
     tab.to_ascii()
     tab.to_json()
     print("Time :", time() - start)
