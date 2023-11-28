@@ -138,13 +138,15 @@ class Tab:
         if notes: #if notes contains one or more notes at a specific timing
           try:      
             start_time = notes[0].start
-            start_time_ticks = int(self.midi.time_to_tick(start_time))
+            start_time_ticks = int(self.midi.time_to_tick(start_time)) #Cast to int so it's serializable
             
+            #######################################################
             notes_pitches = list(set([note.pitch for note in notes]))
             notes = [Note(pitch) for pitch in notes_pitches]
 
-            note_arrays =[get_notes_in_graph(self.graph, note) for note in notes]
-            note_arrays = [note_array for note_array in note_arrays if len(note_array) > 0]
+            notes = fix_impossible_notes(self.tuning, notes)
+
+            note_arrays = get_note_arrays(self.graph, notes)
             
             if len(note_arrays) == 0:
               continue
@@ -152,6 +154,9 @@ class Tab:
             if notes_pitches not in present_notes:
               all_paths = find_all_paths(self.graph, note_arrays)
               
+              if len(all_paths) == 0:
+                continue
+                            
               if initial_probabilities is None:
                 isolated_difficulties = [1/compute_isolated_path_difficulty(self.graph, path) for path in all_paths]
                 initial_probabilities = difficulties_to_probabilities(isolated_difficulties)
@@ -162,6 +167,8 @@ class Tab:
               emission_matrix = expand_emission_matrix(emission_matrix, all_paths)
 
             notes_sequence.append(present_notes.index(notes_pitches))
+            #######################################################
+            
           except Exception as e:
             print("==================================")
             print(traceback.format_exc())

@@ -1,8 +1,8 @@
 from enum import Enum
 import numpy as np
 import app.midi_utils as midi_utils
-import app.theory as theory
 from pretty_midi import note_number_to_name
+from collections import defaultdict
 
 class Note:
   """Note object."""
@@ -25,7 +25,7 @@ class Note:
     Two notes are considered equal if they are note objects and their degrees and octaves are the same.
     """
     return isinstance(other, Note) and self.pitch == other.pitch
-
+  
   def __hash__(self):
     """Computes the hash for the Note."""
     return hash((self.name, id(self)))
@@ -63,6 +63,7 @@ class Tuning:
     """
     self._strings = np.array(strings)
     self.nstrings = len(strings)
+    self.nfrets = 18
 
   @property
   def strings(self):
@@ -73,7 +74,7 @@ class Tuning:
     """
     return self._strings
   
-  def get_all_possible_notes(self, nfrets = 20):
+  def get_all_possible_notes(self):
     """Returns all possible_notes on a fretboard for k strings and n frets.
 
     Args:
@@ -86,11 +87,17 @@ class Tuning:
     res = []
     for string in self.strings:
       string_notes = []
-      for ifret in range(nfrets):
-        string_notes.append(theory.Note(string.pitch + ifret))
+      for ifret in range(self.nfrets + 1): # + 1 to take into account fret 0
+        string_notes.append(Note(string.pitch + ifret))
       res.append(string_notes)
 
     return res
+  
+  def get_pitch_bounds(self):
+    min_pitch = min([string.pitch for string in self.strings])
+    max_pitch = min_pitch + self.nfrets
+    
+    return min_pitch, max_pitch
 
 class Beat:
   """Beat class."""
@@ -117,15 +124,13 @@ class Beat:
     """
     measure_length = midi_utils.measure_length_ticks(midi, time_signature)
 
-    self.notes = {}
+    self.notes = defaultdict(list)
     
     for note in notes_to_add:
       tick = midi.time_to_tick(note.start) - self.ibeat*midi.resolution - self.imeasure*measure_length
       timing = tick/midi.resolution + self.ibeat
-      if timing in self.notes:
-        self.notes[timing].append(note)
-      else:
-        self.notes[timing] = [note]
+        
+      self.notes[timing].append(note)
 
 class Measure: 
   """Measure class."""
@@ -153,12 +158,12 @@ class Measure:
     """
     midi = self.tab.midi
     measure_length = midi_utils.measure_length_ticks(midi, self.time_signature)
-    beat_ticks = np.arange(self.imeasure*measure_length,self.imeasure*measure_length + measure_length, step=midi.resolution)
+    beat_ticks = np.arange(self.imeasure*measure_length,self.imeasure*measure_length + measure_length, step=midi.resolution) 
+    #^List of all the measure start ticks (ex : [0, 1024, 2048])
     
     for ibeat in range(len(self.beats)): 
-      current_beat_tick = beat_ticks[ibeat]
-      beat_start = current_beat_tick
-      beat_end = current_beat_tick + midi.resolution
+      beat_start = beat_ticks[ibeat]
+      beat_end = beat_start + midi.resolution
       beat_notes = midi_utils.get_notes_between(midi, notes, beat_start, beat_end)
       beat = Beat(self.imeasure, ibeat, self.tab)
       beat.populate(beat_notes, midi, self.time_signature)

@@ -4,6 +4,9 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import itertools
 
+from app.theory import *
+from app.midi_utils import transpose_note, remove_duplicate_notes
+
 def distance_between(p1, p2):
   """Computes the distance between two points. 
   Distance between 2 strings is assumed to be 1/6.
@@ -427,3 +430,31 @@ def display_complete_graph(complete_graph):
   positions = nx.get_node_attributes(complete_graph, "pos")
   nx.draw(complete_graph, pos=positions)
   plt.show()
+
+def get_note_arrays(G, notes):
+  """Returns note arrays from a list of theory.Notes"""
+  note_arrays =[get_notes_in_graph(G, note) for note in notes]
+  note_arrays = [note_array for note_array in note_arrays if len(note_array) > 0]
+  
+  return note_arrays
+
+def fix_impossible_notes(tuning, notes):
+  min_possible_pitch, max_possible_pitch = tuning.get_pitch_bounds()
+  
+  res_notes = []
+  
+  for note in notes:
+    n_octaves_to_adjust = 0
+    
+    if note.pitch > max_possible_pitch:
+      semitones_above_max = max(note.pitch - max_possible_pitch, 0)
+      n_octaves_to_adjust = - math.ceil(semitones_above_max/12)
+      
+    elif note.pitch < min_possible_pitch:
+      semitones_below_min = max(min_possible_pitch - note.pitch, 0)
+      n_octaves_to_adjust = math.ceil(semitones_below_min/12)
+    
+    res_notes.append(transpose_note(note, n_octaves_to_adjust * 12))
+    
+  return remove_duplicate_notes(res_notes)
+  

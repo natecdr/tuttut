@@ -27,7 +27,8 @@ if __name__ == "__main__":
   try:
     start = time()
     f = pretty_midi.PrettyMIDI(Path("./midis", file).as_posix())
-    tab = Tab(file.stem, Tuning(), f)
+    tab = Tab(file.stem, Tuning([Note(69), Note(64), Note(60), Note(67)]), f)
+    # tab = Tab(file.stem, Tuning(), f)
     tab.to_ascii()
     tab.to_json()
     print("Time :", time() - start)
