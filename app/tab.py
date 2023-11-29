@@ -144,7 +144,7 @@ class Tab:
             notes_pitches = list(set([note.pitch for note in notes]))
             notes = [Note(pitch) for pitch in notes_pitches]
 
-            notes = fix_impossible_notes(self.tuning, notes)
+            notes = fix_impossible_notes(self.tuning, notes, preserve_highest_note=True)
 
             note_arrays = get_note_arrays(self.graph, notes)
             

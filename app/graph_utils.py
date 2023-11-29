@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import itertools
 
 from app.theory import *
-from app.midi_utils import transpose_note, remove_duplicate_notes
+from app.midi_utils import transpose_note, remove_duplicate_notes, sort_notes_by_pitch
 
 def distance_between(p1, p2):
   """Computes the distance between two points. 
@@ -438,23 +438,37 @@ def get_note_arrays(G, notes):
   
   return note_arrays
 
-def fix_impossible_notes(tuning, notes):
+def fix_impossible_notes(tuning, notes, preserve_highest_note = False):
   min_possible_pitch, max_possible_pitch = tuning.get_pitch_bounds()
+  
+  highest_pitch_before = max([note.pitch for note in notes])
+  
+  highest_pitch_semitones_above_max = max(highest_pitch_before - max_possible_pitch, 0)
+  highest_pitch_after = highest_pitch_before - (math.ceil(highest_pitch_semitones_above_max/12) * 12)
+  #Highest pitch after processing (n octaves below highest before processing)
   
   res_notes = []
   
   for note in notes:
     n_octaves_to_adjust = 0
     
-    if note.pitch > max_possible_pitch:
-      semitones_above_max = max(note.pitch - max_possible_pitch, 0)
-      n_octaves_to_adjust = - math.ceil(semitones_above_max/12)
-      
-    elif note.pitch < min_possible_pitch:
+    if not preserve_highest_note:
+      if note.pitch > max_possible_pitch:
+        semitones_above_max = max(note.pitch - max_possible_pitch, 0)
+        n_octaves_to_adjust = - math.ceil(semitones_above_max/12)
+    else:
+      if note.pitch > highest_pitch_after:
+        semitones_above_max = max(note.pitch - highest_pitch_after, 0)
+        n_octaves_to_adjust = - math.ceil(semitones_above_max/12)
+    
+    if note.pitch < min_possible_pitch:
       semitones_below_min = max(min_possible_pitch - note.pitch, 0)
       n_octaves_to_adjust = math.ceil(semitones_below_min/12)
+      
+    new_note = transpose_note(note, n_octaves_to_adjust * 12)
     
-    res_notes.append(transpose_note(note, n_octaves_to_adjust * 12))
-    
-  return remove_duplicate_notes(res_notes)
+    if new_note.pitch >= min_possible_pitch and new_note.pitch <= max_possible_pitch:
+      res_notes.append(new_note)
+  
+  return remove_duplicate_notes(res_notes)  
   

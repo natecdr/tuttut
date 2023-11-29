@@ -63,7 +63,7 @@ class Tuning:
     """
     self._strings = np.array(strings)
     self.nstrings = len(strings)
-    self.nfrets = 18
+    self.nfrets = 16
 
   @property
   def strings(self):
@@ -95,7 +95,7 @@ class Tuning:
   
   def get_pitch_bounds(self):
     min_pitch = min([string.pitch for string in self.strings])
-    max_pitch = min_pitch + self.nfrets
+    max_pitch = max([string.pitch for string in self.strings]) + self.nfrets
     
     return min_pitch, max_pitch
 

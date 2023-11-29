@@ -111,3 +111,6 @@ def remove_duplicate_notes(notes):
       res_notes.append(note)
       
   return res_notes
+
+def sort_notes_by_pitch(notes):
+  return sorted(notes, key = lambda n: n.pitch)
