@@ -158,7 +158,7 @@ class Tab:
                 continue
                             
               if initial_probabilities is None:
-                isolated_difficulties = [1/compute_isolated_path_difficulty(self.graph, path) for path in all_paths]
+                isolated_difficulties = [1/compute_isolated_path_difficulty(self.graph, path, self.tuning) for path in all_paths]
                 initial_probabilities = difficulties_to_probabilities(isolated_difficulties)
               
               present_notes.append(notes_pitches)
@@ -191,7 +191,7 @@ class Tab:
 
       tab["measures"].append(res_measure)
 
-    transition_matrix = build_transition_matrix(self.graph, present_fingerings, self.weights)
+    transition_matrix = build_transition_matrix(self.graph, present_fingerings, self.weights, self.tuning)
     
     initial_probabilities = np.hstack((initial_probabilities, np.zeros(len(transition_matrix) - len(initial_probabilities))))
 

@@ -160,7 +160,7 @@ def is_path_possible(G, path, note_arrays):
 
   return one_per_string and max_fret_span and right_length
 
-def compute_path_difficulty(G, path, previous_path, weights):
+def compute_path_difficulty(G, path, previous_path, weights, tuning):
   """Computes the difficulty of a path.
 
   Args:
@@ -171,10 +171,13 @@ def compute_path_difficulty(G, path, previous_path, weights):
   Returns:
       float: Difficulty metric of a path
   """
-  height = get_height(G, path, previous_path)
-  previous_height = get_height(G, previous_path) if len(previous_path) > 0 else 0
+  raw_height = get_raw_height(G, path, previous_path)
+  previous_raw_height = get_raw_height(G, previous_path)
+  
+  height = get_height_score(G, path, tuning, previous_path)
+  previous_height = get_height_score(G, previous_path, tuning) if len(previous_path) > 0 else 0
 
-  dheight = np.abs(height-previous_height)
+  dheight = get_dheight_score(raw_height, previous_raw_height, tuning)
 
   length = get_path_length(G, path)
   
@@ -184,7 +187,7 @@ def compute_path_difficulty(G, path, previous_path, weights):
   
   return 1/easiness
 
-def compute_isolated_path_difficulty(G, path):
+def compute_isolated_path_difficulty(G, path, tuning):
   """Computes the difficulty of a path not taking into account the previous one played.
 
   Args:
@@ -195,7 +198,7 @@ def compute_isolated_path_difficulty(G, path):
   Returns:
       float: Difficulty metric of a path
   """
-  height = get_height(G, path)
+  height = get_height_score(G, path, tuning)
   
   length = get_path_length(G, path)
   
@@ -252,8 +255,21 @@ def get_n_changed_strings(G, path, previous_path):
 
   return n_changed_strings
 
-def get_height(G, path, previous_path=None):
-  """Returns the average height on the fretboard of gighest and lowest notes in the path.
+def get_height_score(G, path, tuning, previous_path=None):
+  """Returns the height score for calculating difficulty (0-1)
+
+    Args:
+        G (networkx.Graph): Fretboard graph
+        path (tuple): Path to compute the height for
+        previous_path (tuple, optional): Previous played path. Defaults to None.
+
+    Returns:
+        float: Height of the path if possible, height of the previous path instead
+  """
+  return get_raw_height(G, path, previous_path)/tuning.nfrets
+    
+def get_raw_height(G, path, previous_path=None):
+  """Returns the average height on the fretboard of highest and lowest notes in the path.
 
   Args:
       G (networkx.Graph): Fretboard graph
@@ -271,8 +287,23 @@ def get_height(G, path, previous_path=None):
   elif previous_path is None:
     return 0
   else:
-    return get_height(G, previous_path)
+    return get_raw_height(G, previous_path)
+  
+def get_dheight_score(height, previous_height, tuning):
+  """Returns the score for the distance between previous fingering height and current fingering height
 
+  Args:
+      height (int): current fingering height
+      previous_height (int): previous fingering height
+  """
+  print("Previous height :", previous_height)
+  print("Current height :", height)
+  print("Dheight :", np.abs(height-previous_height))
+  print("dheight score :", np.abs(height-previous_height)/tuning.nfrets)
+  print()
+  
+  return np.abs(height-previous_height)/tuning.nfrets #5 the maximum amount of frets that can be spanned
+    
 def get_path_length(G, path):
   """Returns the total length of a path.
   
@@ -362,7 +393,7 @@ def viterbi(V, Tm, Em, initial_distribution = None):
 
   return S
 
-def build_transition_matrix(G, fingerings, weights):
+def build_transition_matrix(G, fingerings, weights, tuning):
   """Builds the transition matrix according to all the present fingerings.
 
   Args:
@@ -374,7 +405,7 @@ def build_transition_matrix(G, fingerings, weights):
   """
   transition_matrix = np.zeros((len(fingerings), len(fingerings)))
   for iprevious in range(len(fingerings)):
-    difficulties = np.array([1/compute_path_difficulty(G, fingerings[icurrent], fingerings[iprevious], weights)
+    difficulties = np.array([1/compute_path_difficulty(G, fingerings[icurrent], fingerings[iprevious], weights, tuning)
                             for icurrent in range(len(fingerings))])
     
     transition_matrix[iprevious] = difficulties_to_probabilities(difficulties)
