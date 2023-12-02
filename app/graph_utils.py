@@ -172,16 +172,15 @@ def compute_path_difficulty(G, path, previous_path, weights, tuning):
       float: Difficulty metric of a path
   """
   raw_height = get_raw_height(G, path, previous_path)
-  previous_raw_height = get_raw_height(G, previous_path)
+  previous_raw_height = get_raw_height(G, previous_path) if len(previous_path) > 0 else 0
   
   height = get_height_score(G, path, tuning, previous_path)
-  previous_height = get_height_score(G, previous_path, tuning) if len(previous_path) > 0 else 0
 
   dheight = get_dheight_score(raw_height, previous_raw_height, tuning)
 
   length = get_path_length(G, path)
   
-  n_changed_strings = get_n_changed_strings(G, path, previous_path)
+  n_changed_strings = get_n_changed_strings(G, path, previous_path, tuning)
   
   easiness = laplace_distro(dheight, b=weights["b"]) * 1/(1+height * weights["height"]) * 1/(1+length * weights["length"]) * 1/(1+n_changed_strings * weights["n_changed_strings"])
   
@@ -237,7 +236,7 @@ def get_nfingers(G, path):
     
   return count
 
-def get_n_changed_strings(G, path, previous_path):
+def get_n_changed_strings(G, path, previous_path, tuning):
   """Returns the number of strings that have changed compared to the previous shape.
 
   Args:
@@ -252,8 +251,10 @@ def get_n_changed_strings(G, path, previous_path):
   previous_used_strings = set([G.nodes[note]["pos"][0] for note in previous_path])
 
   n_changed_strings = len(path) - len(set(used_strings).intersection(previous_used_strings))
-
-  return n_changed_strings
+  
+  n_changed_strings_score = n_changed_strings/tuning.nstrings
+  assert 0 <= n_changed_strings_score <= 1
+  return n_changed_strings_score
 
 def get_height_score(G, path, tuning, previous_path=None):
   """Returns the height score for calculating difficulty (0-1)
@@ -266,6 +267,8 @@ def get_height_score(G, path, tuning, previous_path=None):
     Returns:
         float: Height of the path if possible, height of the previous path instead
   """
+  height = get_raw_height(G, path, previous_path)/tuning.nfrets
+  assert 0 <= height <= 1
   return get_raw_height(G, path, previous_path)/tuning.nfrets
     
 def get_raw_height(G, path, previous_path=None):
@@ -296,13 +299,9 @@ def get_dheight_score(height, previous_height, tuning):
       height (int): current fingering height
       previous_height (int): previous fingering height
   """
-  print("Previous height :", previous_height)
-  print("Current height :", height)
-  print("Dheight :", np.abs(height-previous_height))
-  print("dheight score :", np.abs(height-previous_height)/tuning.nfrets)
-  print()
-  
-  return np.abs(height-previous_height)/tuning.nfrets #5 the maximum amount of frets that can be spanned
+  dheight = np.abs(height-previous_height)/tuning.nfrets
+  assert 0 <= dheight <= 1
+  return dheight
     
 def get_path_length(G, path):
   """Returns the total length of a path.
@@ -319,7 +318,10 @@ def get_path_length(G, path):
   res = 0
   for i in range(len(path)-1):
     res += G[path[i]][path[i+1]]["distance"]
-  return res
+    
+  length = res/10 #10 probably the maximum distance between notes
+  assert 0 <= length <= 1
+  return length
   
 def display_path_graph(path_graph, show_distances=True, show_names=True):
   """Displays the path graph on a plt plot.
