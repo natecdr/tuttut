@@ -474,25 +474,22 @@ def get_note_arrays(G, notes):
 def fix_impossible_notes(tuning, notes, preserve_highest_note = False):
   min_possible_pitch, max_possible_pitch = tuning.get_pitch_bounds()
   
-  highest_pitch_before = max([note.pitch for note in notes])
-  
-  highest_pitch_semitones_above_max = max(highest_pitch_before - max_possible_pitch, 0)
-  highest_pitch_after = highest_pitch_before - (math.ceil(highest_pitch_semitones_above_max/12) * 12)
-  #Highest pitch after processing (n octaves below highest before processing)
-  
+  if preserve_highest_note:
+    highest_pitch_before = max([note.pitch for note in notes])
+    
+    highest_pitch_semitones_above_max = max(highest_pitch_before - max_possible_pitch, 0)
+    highest_pitch_after = highest_pitch_before - (math.ceil(highest_pitch_semitones_above_max/12) * 12)
+    #Highest pitch after processing (n octaves below highest before processing)
+    max_possible_pitch = highest_pitch_after
+    
   res_notes = []
   
   for note in notes:
     n_octaves_to_adjust = 0
     
-    if not preserve_highest_note:
-      if note.pitch > max_possible_pitch:
-        semitones_above_max = max(note.pitch - max_possible_pitch, 0)
-        n_octaves_to_adjust = - math.ceil(semitones_above_max/12)
-    else:
-      if note.pitch > highest_pitch_after:
-        semitones_above_max = max(note.pitch - highest_pitch_after, 0)
-        n_octaves_to_adjust = - math.ceil(semitones_above_max/12)
+    if note.pitch > max_possible_pitch:
+      semitones_above_max = max(note.pitch - max_possible_pitch, 0)
+      n_octaves_to_adjust = - math.ceil(semitones_above_max/12)
     
     if note.pitch < min_possible_pitch:
       semitones_below_min = max(min_possible_pitch - note.pitch, 0)
@@ -502,6 +499,6 @@ def fix_impossible_notes(tuning, notes, preserve_highest_note = False):
     
     if new_note.pitch >= min_possible_pitch and new_note.pitch <= max_possible_pitch:
       res_notes.append(new_note)
-  
+      
   return remove_duplicate_notes(res_notes)  
   
