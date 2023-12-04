@@ -40,19 +40,22 @@ class Tab:
     
     for i,time_signature in enumerate(self.time_signatures):
       measure_length_in_ticks = measure_length_ticks(self.midi, time_signature)
-      time_sig_start = time_signature.time
-      time_sig_end = self.time_signatures[i+1].time if i < len(self.time_signatures)-1 else self.midi.time_to_tick(self.midi.get_end_time())
+      
+      time_sig_start = self.midi.time_to_tick(time_signature.time)
+      
+      time_sig_end = self.time_signatures[i+1].time if i < len(self.time_signatures)-1 else self.midi.get_end_time()
+      time_sig_end = self.midi.time_to_tick(time_sig_end)
       measure_ticks = np.arange(time_sig_start, time_sig_end, measure_length_in_ticks) #List of all the measure start ticks (ex : [0, 1024, 2048])
-
+      
       for imeasure, measure_start in enumerate(measure_ticks):
         notes = []
         for instrument in non_drum_instruments:
-          measure_end = measure_start + measure_length_in_ticks
+          measure_end = min(measure_start + measure_length_in_ticks, time_sig_end)
           notes = np.concatenate((notes, get_notes_between(self.midi, instrument.notes, measure_start, measure_end)))
         notes = sort_notes_by_tick(notes)
         
         self.measures.append(Measure(self, imeasure, time_signature, notes=notes))
-
+        
   def _build_complete_graph(self):
     """Builds the complete graph representing the fretboard.
     
@@ -140,7 +143,6 @@ class Tab:
             start_time = notes[0].start
             start_time_ticks = int(self.midi.time_to_tick(start_time)) #Cast to int so it's serializable
             
-            #######################################################
             notes_pitches = list(set([note.pitch for note in notes]))
             notes = [Note(pitch) for pitch in notes_pitches]
             
@@ -167,7 +169,6 @@ class Tab:
               emission_matrix = expand_emission_matrix(emission_matrix, all_paths)
 
             notes_sequence.append(present_notes.index(notes_pitches))
-            #######################################################
             
           except Exception as e:
             print("==================================")
