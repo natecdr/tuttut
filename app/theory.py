@@ -63,7 +63,7 @@ class Tuning:
     """
     self._strings = np.array(strings)
     self.nstrings = len(strings)
-    self.nfrets = 16
+    self.nfrets = 20
 
   @property
   def strings(self):

@@ -178,11 +178,12 @@ def compute_path_difficulty(G, path, previous_path, weights, tuning):
 
   dheight = get_dheight_score(raw_height, previous_raw_height, tuning)
 
-  length = get_path_length(G, path)
+  # length = get_path_length(G, path)
+  span = get_path_span(G, path)
   
   n_changed_strings = get_n_changed_strings(G, path, previous_path, tuning)
   
-  easiness = laplace_distro(dheight, b=weights["b"]) * 1/(1+height * weights["height"]) * 1/(1+length * weights["length"]) * 1/(1+n_changed_strings * weights["n_changed_strings"])
+  easiness = laplace_distro(dheight, b=weights["b"]) * 1/(1+height * weights["height"]) * 1/(1+span * weights["length"]) * 1/(1+n_changed_strings * weights["n_changed_strings"])
   
   return 1/easiness
 
@@ -199,9 +200,9 @@ def compute_isolated_path_difficulty(G, path, tuning):
   """
   height = get_height_score(G, path, tuning)
   
-  length = get_path_length(G, path)
+  span = get_path_span(G, path)
   
-  easiness = 1/(1+height) * 1/(1+length)
+  easiness = 1/(1+height) * 1/(1+span)
   
   return 1/easiness
 
@@ -322,6 +323,23 @@ def get_path_length(G, path):
   length = res/10 #10 probably the maximum distance between notes
   assert 0 <= length <= 1
   return length
+
+def get_path_span(G, path):
+  """Returns the vertical span of a path.
+
+  Args:
+      G (networkx.Graph): Fretboard graph
+      path (tuple): Path to compute the span for
+
+  Returns:
+      float: Span of the path
+  """
+  
+  y = [G.nodes[note]["pos"][1] for note in path if G.nodes[note]["pos"][1] != 0]
+  
+  span = (max(y) - min(y))/5 if len(y) > 0 else 0
+  assert 0 <= span <= 1
+  return span
   
 def display_path_graph(path_graph, show_distances=True, show_names=True):
   """Displays the path graph on a plt plot.
