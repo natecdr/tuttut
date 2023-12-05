@@ -29,6 +29,7 @@ class Tab:
     self.midi = midi
     self.graph = self._build_complete_graph()
     self.weights = {"b":1, "height":1, "length":1, "n_changed_strings":1} if weights is None else weights
+    self.timeline = self.build_timeline()
     
     self.populate()
     
@@ -57,6 +58,29 @@ class Tab:
         
         self.measures.append(Measure(self, imeasure, time_signature, measure_start, measure_end, notes=notes))
         
+  def build_timeline(self):
+    timeline = defaultdict(dict)
+    non_drum_instruments = get_non_drum(self.midi.instruments)
+    
+    #Notes
+    for instrument in non_drum_instruments:
+      notes = instrument.notes
+      
+      assert [note.start for note in notes] == sorted([note.start for note in notes]) #Are notes sorted by time
+      
+      for note in notes:
+        note_tick = self.midi.time_to_tick(note.start)
+        
+        if "notes" in timeline[note_tick]:
+          timeline[note_tick]["notes"].append(note)
+        else:
+          timeline[note_tick]["notes"] = [note]
+    
+    #Time signatures
+    for time_signature in self.time_signatures:
+      time_signature_tick = self.midi.time_to_tick(time_signature.time)
+      timeline[time_signature_tick]["time_signature"] = time_signature
+    
   def _build_complete_graph(self):
     """Builds the complete graph representing the fretboard.
     
