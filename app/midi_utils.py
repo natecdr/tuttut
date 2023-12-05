@@ -91,10 +91,12 @@ def quantize(midi):
   Args:
       midi (pretty_midi.PrettyMIDI): MIDI object to quantize
   """
+  quantization_factor = 32
+  
   for instrument in midi.instruments:
       quantized_notes = []
       for note in instrument.notes:
-          rounded = round_to_multiple(midi.time_to_tick(note.start), base=midi.resolution/8)
+          rounded = round_to_multiple(midi.time_to_tick(note.start), base=midi.resolution/quantization_factor)
           quantized_notes.append(pretty_midi.Note(velocity = note.velocity, pitch = note.pitch, start = midi.tick_to_time(rounded), end=note.end))
 
       instrument.notes = quantized_notes

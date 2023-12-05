@@ -134,7 +134,7 @@ class Beat:
 
 class Measure: 
   """Measure class."""
-  def __init__(self, tab, imeasure, time_signature, notes=None):
+  def __init__(self, tab, imeasure, time_signature, measure_start, measure_end, notes=None):
     """Constructor for the Measure object.
 
     Args:
@@ -142,10 +142,12 @@ class Measure:
         imeasure (int): Measure number in the song
         time_signature (pretty_midi.TimeSignature): Current time signature of the song
     """
-    self.beats = np.empty(time_signature.numerator, dtype = Beat)
+    self.beats = []
     self.imeasure = imeasure
     self.time_signature = time_signature
     self.tab = tab
+    self.measure_start = measure_start
+    self.measure_end = measure_end
     
     if notes is not None:
       self.populate(notes)
@@ -157,18 +159,17 @@ class Measure:
         notes (list): Notes to add to the beats
     """
     midi = self.tab.midi
-    measure_length = midi_utils.measure_length_ticks(midi, self.time_signature)
-    beat_ticks = np.arange(self.imeasure*measure_length,self.imeasure*measure_length + measure_length, step=midi.resolution) 
-    #^List of all the measure start ticks (ex : [0, 1024, 2048])
     
-    for ibeat in range(len(self.beats)): 
-      beat_start = beat_ticks[ibeat]
-      beat_end = beat_start + midi.resolution
-      beat_notes = midi_utils.get_notes_between(midi, notes, beat_start, beat_end)
-      beat = Beat(self.imeasure, ibeat, self.tab)
-      beat.populate(beat_notes, midi, self.time_signature)
-      self.beats[ibeat] = beat
-
+    beat_start = 0
+    while beat_start < self.measure_end:
+      beat_start = self.measure_start + len(self.beats) * midi.resolution
+      if beat_start < self.measure_end:
+        beat_end = min(beat_start + midi.resolution, self.measure_end)
+        beat_notes = midi_utils.get_notes_between(midi, notes, beat_start, beat_end)
+        beat = Beat(self.imeasure, len(self.beats), self.tab)
+        beat.populate(beat_notes, midi, self.time_signature)
+        self.beats.append(beat)
+    
   def get_all_notes(self):
     """Returns all notes in the measure.
 

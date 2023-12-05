@@ -19,7 +19,7 @@ class Tab:
         tuning (Tuning): Tuning of the instrument for the tab
         midi (pretty_midi.PrettyMIDI): The MIDI we're trying to convert to tab
     """
-    quantize(midi)
+    # quantize(midi)
     
     self.name = name
     self.tuning = tuning
@@ -46,15 +46,16 @@ class Tab:
       time_sig_end = self.time_signatures[i+1].time if i < len(self.time_signatures)-1 else self.midi.get_end_time()
       time_sig_end = self.midi.time_to_tick(time_sig_end)
       measure_ticks = np.arange(time_sig_start, time_sig_end, measure_length_in_ticks) #List of all the measure start ticks (ex : [0, 1024, 2048])
-      
       for imeasure, measure_start in enumerate(measure_ticks):
         notes = []
+        measure_end = min(measure_start + measure_length_in_ticks, time_sig_end)
+        
         for instrument in non_drum_instruments:
-          measure_end = min(measure_start + measure_length_in_ticks, time_sig_end)
           notes = np.concatenate((notes, get_notes_between(self.midi, instrument.notes, measure_start, measure_end)))
+          
         notes = sort_notes_by_tick(notes)
         
-        self.measures.append(Measure(self, imeasure, time_signature, notes=notes))
+        self.measures.append(Measure(self, imeasure, time_signature, measure_start, measure_end, notes=notes))
         
   def _build_complete_graph(self):
     """Builds the complete graph representing the fretboard.
@@ -187,7 +188,7 @@ class Tab:
             ts_change = True
 
           event = self.build_event(start_time, start_time_ticks, timing, ts, ts_change)
-
+          
         res_measure["events"].append(event)
 
       tab["measures"].append(res_measure)
