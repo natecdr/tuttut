@@ -2,17 +2,13 @@ from app.midi_utils import *
 import numpy as np
 import math
 
-def get_tab_positions(tab_json, ignore_empty = False):
+def get_tab_positions(tab_json):
   positions = []
   for measure in tab_json["measures"]:
       for event in measure["events"]:
-          event_positions = tuple((note["string"], note["fret"]) for note in event["notes"])
-        
-          if ignore_empty:
-            if "notes" in event and len(event["notes"]) > 0:
-              positions.append(event_positions)
-          else:
-            positions.append(event_positions)
+        if "notes" in event and len(event["notes"]) > 0:
+          event_positions = tuple((note["string"], note["fret"]) for note in event["notes"] if "notes" in event)
+          positions.append(event_positions)
   
   return positions
 
