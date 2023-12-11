@@ -241,13 +241,13 @@ class Tab:
             string, fret = note["string"], note["fret"]
             res[string] += str(fret)
 
-        next_event_timing = measure["events"][ievent + 1]["measure_timing"] if ievent < len(measure["events"]) - 1 else 1.0
-        dashes_to_add = max(1, math.floor((next_event_timing - event["measure_timing"]) * 16))
+          next_event_timing = measure["events"][ievent + 1]["measure_timing"] if ievent < len(measure["events"]) - 1 else 1.0
+          dashes_to_add = max(1, math.floor((next_event_timing - event["measure_timing"]) * 16))
 
-        res = fill_measure_str(res)
+          res = fill_measure_str(res)
 
-        for istring in range(self.nstrings):
-          res[istring] += "-" * dashes_to_add
+          for istring in range(self.nstrings):
+            res[istring] += "-" * dashes_to_add
 
       for istring in range(self.nstrings):
         res[istring] += "|"
