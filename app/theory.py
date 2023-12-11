@@ -99,39 +99,6 @@ class Tuning:
     
     return min_pitch, max_pitch
 
-class Beat:
-  """Beat class."""
-  def __init__(self, imeasure, ibeat, tab):
-    """Constructor for the Beat object.
-
-    Args:
-        imeasure (int): Measure number in the song
-        ibeat (int): Beat number in the measure
-        tab (Tab): Tab object
-    """
-    self.ibeat = ibeat
-    self.imeasure = imeasure
-    self.tab = tab
-    self.notes = None
-
-  def populate(self, notes_to_add, midi, time_signature):
-    """Populates the Beat with its corresponding notes.
-
-    Args:
-        notes_to_add (list): List of notes to add to the beat
-        midi (pretty_midi.PrettyMIDI): MIDI object
-        time_signature (pretty_midi.TimeSignature): Current time signature of the song
-    """
-    measure_length = midi_utils.measure_length_ticks(midi, time_signature)
-
-    self.notes = defaultdict(list)
-    
-    for note in notes_to_add:
-      tick = midi.time_to_tick(note.start) - self.ibeat*midi.resolution - self.imeasure*measure_length
-      timing = tick/midi.resolution + self.ibeat
-        
-      self.notes[timing].append(note)
-
 class Measure: 
   """Measure class."""
   def __init__(self, tab, imeasure, time_signature, measure_start, measure_end):
@@ -142,7 +109,6 @@ class Measure:
         imeasure (int): Measure number in the song
         time_signature (pretty_midi.TimeSignature): Current time signature of the song
     """
-    self.beats = []
     self.imeasure = imeasure
     self.time_signature = time_signature
     self.tab = tab
