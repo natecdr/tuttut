@@ -37,27 +37,20 @@ class Tab:
 
   def populate(self):
     """Populates tab with Measures."""
-    non_drum_instruments = get_non_drum(self.midi.instruments)
-    
-    for i,time_signature in enumerate(self.time_signatures):
+    for i, time_signature in enumerate(self.time_signatures):
       measure_length_in_ticks = measure_length_ticks(self.midi, time_signature)
       
       time_sig_start = self.midi.time_to_tick(time_signature.time)
       
       time_sig_end = self.time_signatures[i+1].time if i < len(self.time_signatures)-1 else self.midi.get_end_time()
       time_sig_end = self.midi.time_to_tick(time_sig_end)
+      
       measure_ticks = np.arange(time_sig_start, time_sig_end, measure_length_in_ticks) #List of all the measure start ticks (ex : [0, 1024, 2048])
+      
       for imeasure, measure_start in enumerate(measure_ticks):
-        notes = []
         measure_end = min(measure_start + measure_length_in_ticks, time_sig_end)
-        
-        for instrument in non_drum_instruments:
-          notes = np.concatenate((notes, get_notes_between(self.midi, instrument.notes, measure_start, measure_end)))
-          
-        notes = sort_notes_by_tick(notes)
-        
-        self.measures.append(Measure(self, imeasure, time_signature, measure_start, measure_end, notes=notes))
-        
+        self.measures.append(Measure(self, imeasure, time_signature, measure_start, measure_end))
+  
   def build_timeline(self):
     timeline = defaultdict(dict)
     non_drum_instruments = get_non_drum(self.midi.instruments)
@@ -65,6 +58,7 @@ class Tab:
     #Notes
     for instrument in non_drum_instruments:
       notes = instrument.notes
+      notes.sort(key=lambda x: x.start)
       
       assert [note.start for note in notes] == sorted([note.start for note in notes]) #Are notes sorted by time
       
@@ -80,6 +74,8 @@ class Tab:
     for time_signature in self.time_signatures:
       time_signature_tick = self.midi.time_to_tick(time_signature.time)
       timeline[time_signature_tick]["time_signature"] = time_signature
+      
+    return timeline
     
   def _build_complete_graph(self):
     """Builds the complete graph representing the fretboard.
@@ -105,6 +101,126 @@ class Tab:
         complete_graph.add_edge(node[0], node_to_link[0], distance = dst)
         
     return complete_graph
+
+  def gen_tab(self):
+    """Generates the tab data and the fingerings."""
+    tab = {}
+    
+    tab["tuning"] = [string.pitch for string in self.tuning.strings]
+    
+    tab["measures"] = []
+
+    notes_vocabulary = []
+    notes_sequence = []
+    
+    fingerings_vocabulary = []
+
+    emission_matrix = np.array([])
+    initial_probabilities = None
+
+    for imeasure, measure in enumerate(self.measures):
+      res_measure = {"events":[]}
+
+      measure_events = measure.timeline
+
+      for event_tick, event_types in measure_events.items():        
+        event = {
+          "time": self.midi.tick_to_time(int(event_tick)),
+          "time_ticks": int(event_tick),
+          "measure_timing": (event_tick - measure.measure_start)/measure.duration_ticks
+        }
+        
+        if "time_signature" in event_types:
+          ts = event_types["time_signature"]
+          event["time_signature_change"] = [ts.numerator, ts.denominator]
+
+        if "notes" in event_types: #if notes contains one or more notes at a specific timing
+          try:      
+            event["notes"] = [] #Signals there are notes in this event
+            
+            notes = event_types["notes"]
+            
+            notes_pitches = tuple(set([note.pitch for note in notes]))
+            notes = [Note(pitch) for pitch in notes_pitches]
+            
+            notes = fix_impossible_notes(self.tuning, notes, preserve_highest_note=False)
+            
+            note_arrays = get_note_arrays(self.graph, notes)
+            
+            if notes_pitches not in notes_vocabulary:
+              all_paths = find_all_paths(self.graph, note_arrays)
+              
+              if len(all_paths) > 0:   
+                notes_vocabulary.append(notes_pitches)
+                
+                fingerings_vocabulary += all_paths 
+                              
+                if initial_probabilities is None:
+                  isolated_difficulties = [1/compute_isolated_path_difficulty(self.graph, path, self.tuning) for path in all_paths]
+                  initial_probabilities = difficulties_to_probabilities(isolated_difficulties)
+                
+                emission_matrix = expand_emission_matrix(emission_matrix, all_paths)
+              
+            if notes_pitches in notes_vocabulary:
+              notes_sequence.append(notes_vocabulary.index(notes_pitches))
+            else:
+              notes_sequence.append(-1)
+            
+          except Exception as e:
+            print("==================================")
+            print(traceback.format_exc())
+            print("----------------------------------")
+            print("Note arrays :", note_arrays)
+            print("Notes :", notes)
+            print(Note(notes[0].pitch).name)
+            print("Measure no.", imeasure)
+            print("==================================")
+            break
+          
+        res_measure["events"].append(event)
+
+      tab["measures"].append(res_measure)
+      
+    transition_matrix = build_transition_matrix(self.graph, fingerings_vocabulary, self.weights, self.tuning)
+    
+    initial_probabilities = np.hstack((initial_probabilities, np.zeros(len(transition_matrix) - len(initial_probabilities))))
+    
+    sequence_indices = viterbi(notes_sequence, transition_matrix, emission_matrix, initial_probabilities)
+    sequence_indices = [int(i) for i in sequence_indices]
+
+    final_sequence = np.array(fingerings_vocabulary, dtype=object)[sequence_indices]
+    
+    tab = self.populate_tab_notes(tab, final_sequence)
+    
+    return tab
+
+  def populate_tab_notes(self, tab, sequence):
+    """Populates the tab template with notes and their fingerings.
+
+    Args:
+        tab (dict): The tab template without notes
+        sequence (list): Sequence of notes and fingerings to be used
+
+    Returns:
+        dict: The final tab with notes and fingerings
+    """
+    ievent = 0
+    for measure in tab["measures"]:
+      for event in measure["events"]:
+        if "notes" not in event:
+          continue
+        
+        for path_note in sequence[ievent]:
+          string, fret = self.graph.nodes[path_note]["pos"]   
+          event["notes"].append({
+            "degree": path_note.degree,
+            "octave": path_note.octave,
+            "string": string,
+            "fret": fret
+            })
+        ievent += 1
+        
+    return tab
 
   def to_string(self):
     """Generates the text for the ascii tabs.
@@ -138,147 +254,6 @@ class Tab:
 
     return res
 
-  def gen_tab(self):
-    """Generates the tab data and the fingerings."""
-    tab = {}
-    
-    tab["tuning"] = [string.pitch for string in self.tuning.strings]
-    
-    tab["measures"] = []
-
-    time_sig_index = -1
-
-    present_notes = []
-    notes_sequence = []
-
-    present_fingerings = []
-
-    emission_matrix = np.array([])
-    initial_probabilities = None
-
-    for imeasure, measure in enumerate(self.measures):
-      res_measure = {"events":[]}
-
-      measure_notes = measure.get_all_notes()
-
-      for timing, notes in measure_notes.items():
-        ts_change = False
-        if notes: #if notes contains one or more notes at a specific timing
-          try:      
-            start_time = notes[0].start
-            start_time_ticks = int(self.midi.time_to_tick(start_time)) #Cast to int so it's serializable
-            
-            notes_pitches = list(set([note.pitch for note in notes]))
-            notes = [Note(pitch) for pitch in notes_pitches]
-            
-            notes = fix_impossible_notes(self.tuning, notes, preserve_highest_note=False)
-            
-            note_arrays = get_note_arrays(self.graph, notes)
-            
-            if len(note_arrays) == 0:
-              continue
-
-            if notes_pitches not in present_notes:
-              all_paths = find_all_paths(self.graph, note_arrays)
-              
-              if len(all_paths) == 0:
-                continue
-                            
-              if initial_probabilities is None:
-                isolated_difficulties = [1/compute_isolated_path_difficulty(self.graph, path, self.tuning) for path in all_paths]
-                initial_probabilities = difficulties_to_probabilities(isolated_difficulties)
-              
-              present_notes.append(notes_pitches)
-              present_fingerings += all_paths
-
-              emission_matrix = expand_emission_matrix(emission_matrix, all_paths)
-
-            notes_sequence.append(present_notes.index(notes_pitches))
-            
-          except Exception as e:
-            print("==================================")
-            print(traceback.format_exc())
-            print("----------------------------------")
-            print("Note arrays :", note_arrays)
-            print("Notes :", notes)
-            print(Note(notes[0].pitch).name)
-            print("Measure no.", imeasure)
-            print("==================================")
-            break
-          
-          if time_sig_index+1 < len(self.time_signatures) and self.time_signatures[time_sig_index+1].time <= start_time:
-            time_sig_index += 1
-            ts = self.time_signatures[time_sig_index]
-            ts_change = True
-
-          event = self.build_event(start_time, start_time_ticks, timing, ts, ts_change)
-          
-        res_measure["events"].append(event)
-
-      tab["measures"].append(res_measure)
-
-    transition_matrix = build_transition_matrix(self.graph, present_fingerings, self.weights, self.tuning)
-    
-    initial_probabilities = np.hstack((initial_probabilities, np.zeros(len(transition_matrix) - len(initial_probabilities))))
-
-    sequence_indices = viterbi(notes_sequence, transition_matrix, emission_matrix, initial_probabilities)
-    sequence_indices = [int(i) for i in sequence_indices]
-
-    final_sequence = np.array(present_fingerings, dtype=object)[sequence_indices]
-
-    tab = self.populate_tab_notes(tab, final_sequence)
-    
-    return tab
-
-  def populate_tab_notes(self, tab, sequence):
-    """Populates the tab template with notes and their fingerings.
-
-    Args:
-        tab (dict): The tab template without notes
-        sequence (list): Sequence of notes and fingerings to be used
-
-    Returns:
-        dict: The final tab with notes and fingerings
-    """
-    ievent = 0
-    for measure in tab["measures"]:
-      for event in measure["events"]:
-        for path_note in sequence[ievent]:
-          string, fret = self.graph.nodes[path_note]["pos"]   
-          event["notes"].append({
-            "degree": path_note.degree,
-            "octave": path_note.octave,
-            "string": string,
-            "fret": fret
-            })
-        ievent += 1
-        
-    return tab
-
-  def build_event(self, start_time, start_time_ticks, timing, ts, ts_change):
-    """Builds the template for an event in the tab.
-
-    Args:
-        start_time (float): Time of occurence of the event in seconds
-        start_time_ticks (int): Time of occurence of the event in ticks
-        timing (float): Timing of the event within the measure
-        ts (pretty_midi.TimeSignature): Current time signature at the time of the event
-        ts_change (bool): If the time signature has changed in the current event
-
-    Returns:
-        dict: Template for the event.
-    """
-    event = {"time":start_time,
-            "measure_timing":None,
-            "time_ticks":start_time_ticks,
-            "notes":[]}
-
-    if ts_change:
-      event["time_signature_change"] = [ts.numerator, ts.denominator]
-
-    event["measure_timing"] = timing/ts.numerator
-
-    return event
 
   def to_json(self):
     """Exports the tab to a json file."""

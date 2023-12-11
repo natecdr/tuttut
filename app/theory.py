@@ -134,7 +134,7 @@ class Beat:
 
 class Measure: 
   """Measure class."""
-  def __init__(self, tab, imeasure, time_signature, measure_start, measure_end, notes=None):
+  def __init__(self, tab, imeasure, time_signature, measure_start, measure_end):
     """Constructor for the Measure object.
 
     Args:
@@ -146,38 +146,12 @@ class Measure:
     self.imeasure = imeasure
     self.time_signature = time_signature
     self.tab = tab
+    
     self.measure_start = measure_start
     self.measure_end = measure_end
     
-    if notes is not None:
-      self.populate(notes)
+    self.timeline = midi_utils.get_events_between(self.tab.timeline, measure_start, measure_end)
 
-  def populate(self, notes):
-    """Populates the Measure with beats.
-
-    Args:
-        notes (list): Notes to add to the beats
-    """
-    midi = self.tab.midi
-    
-    beat_start = 0
-    while beat_start < self.measure_end:
-      beat_start = self.measure_start + len(self.beats) * midi.resolution
-      if beat_start < self.measure_end:
-        beat_end = min(beat_start + midi.resolution, self.measure_end)
-        beat_notes = midi_utils.get_notes_between(midi, notes, beat_start, beat_end)
-        beat = Beat(self.imeasure, len(self.beats), self.tab)
-        beat.populate(beat_notes, midi, self.time_signature)
-        self.beats.append(beat)
-    
-  def get_all_notes(self):
-    """Returns all notes in the measure.
-
-    Returns:
-        list: All notes in the measure's beats
-    """
-    notes = {}
-    for beat in self.beats: 
-      notes.update(beat.notes)
-
-    return notes
+  @property
+  def duration_ticks(self):
+    return self.measure_end - self.measure_start

@@ -116,3 +116,6 @@ def remove_duplicate_notes(notes):
 
 def sort_notes_by_pitch(notes):
   return sorted(notes, key = lambda n: n.pitch)
+
+def get_events_between(timeline, start_ticks, end_ticks):
+    return {key: timeline[key] for key in timeline.keys() if start_ticks <= key < end_ticks}
