@@ -7,53 +7,6 @@ import itertools
 from app.theory import *
 from app.midi_utils import transpose_note, remove_duplicate_notes, sort_notes_by_pitch
 
-def distance_between(p1, p2):
-  """Computes the distance between two points. 
-  Distance between 2 strings is assumed to be 1/6.
-
-  Args:
-      x (tuple): Source point
-      y (tuple): Destination point
-
-  Returns:
-      float: Distance between the two points
-  """
-  p1 = (p1[0]/6, p1[1])
-  p2 = (p2[0]/6, p2[1])
-  return math.dist(p1,p2)
-
-def get_fret_distance(nfret, scale_length = 650):
-  """Returns the distance of the fret from the nut.
-
-  Args:
-      nfret (int): Number of the fret
-      scale_length (int, optional): Scale length of the guitar (Distance beteen the nut and the bridge). Defaults to 650.
-
-  Returns:
-      float: Distance of the fret from the nut
-  """
-  res = 0
-  for i in range(nfret):
-    fret_height = scale_length / 17.817
-    res += fret_height
-    scale_length -= fret_height
-
-  return res
-
-def get_notes_in_graph(G, note):
-  """Get all nodes that correspond to a specific note in a graph.
-
-  Args:
-      G (networkx.Graph): Fretboard graph
-      note (Note): Note to find on the fretboard
-
-  Returns:
-      list: List of nodes thar play the specified note
-  """
-  nodes = list(G.nodes)
-
-  return [node for node in nodes if node == note]
-
 def build_path_graph(G, note_arrays):
   """Returns a path graph corresponding to all possible notes of a chord.
 
@@ -79,7 +32,7 @@ def build_path_graph(G, note_arrays):
 
   return res 
 
-def is_edge_possible(possible_note, possible_target_note, G):
+def is_edge_possible(possible_note, possible_target_note, G): ####### Should be in Fretboard but is used by build_path_graph
   """Checks if a connection is possible between 2 nodes
 
   Args:
@@ -93,32 +46,6 @@ def is_edge_possible(possible_note, possible_target_note, G):
   is_distance_possible = G[possible_note][possible_target_note]["distance"] < 6
   is_different_string = G.nodes[possible_note]["pos"][0] != G.nodes[possible_target_note]["pos"][0]
   return is_distance_possible and is_different_string
-
-# def find_all_paths(G, note_arrays): 
-#   """Returns all possible paths in a path graph
-
-#   Args:
-#       G (networkx.Graph): Fretboard graph
-#       note_arrays (list): List of possible positions for the notes
-
-#   Returns:
-#       list: List of paths
-#   """
-#   paths = []
-  
-#   if len(note_arrays) == 1:
-#     return [(note,) for note in note_arrays[0]]
-
-#   for note_arrays_permutation in list(itertools.permutations(note_arrays)):
-#     path_graph = build_path_graph(G, note_arrays_permutation)
-#     # display_path_graph(path_graph)
-#     for possible_source_node in note_arrays_permutation[0]:
-#       permutation_paths = nx.all_simple_paths(path_graph, possible_source_node, target=note_arrays_permutation[-1])
-#       for path in permutation_paths:
-#         if not is_path_already_checked(paths, path) and is_path_possible(G, path, note_arrays_permutation):
-#           paths.append(tuple(path))
-            
-#   return paths
 
 def is_path_already_checked(paths, current_path):
   """Checks if paths is already present in explored paths, whatever the order. 
@@ -135,30 +62,6 @@ def is_path_already_checked(paths, current_path):
       return True
   
   return False
-
-def is_path_possible(G, path, note_arrays):
-  """Checks if path is possible and playable.
-
-  Args:
-      G (networkx.Graph): Fretboard graph
-      path (tuple): Notes path
-      note_arrays (list): List of possible positions for the notes
-
-  Returns:
-      bool: If the path is possible and playable
-  """
-  #No 2 fingers on a single string
-  plucked_strings = [G.nodes[note]["pos"][0] for note in path]
-  one_per_string = len(plucked_strings) == len(set(plucked_strings))
-
-  #No more than 5 fret span
-  used_frets = [G.nodes[note]["pos"][1] for note in path if G.nodes[note]["pos"][1] != 0]
-  max_fret_span = (max(used_frets) - min(used_frets)) < 5 if len(used_frets) > 0 else True
-
-  #Path doesn't visit more nodes than necessary
-  right_length = len(path) <= len(note_arrays)
-
-  return one_per_string and max_fret_span and right_length
 
 def compute_path_difficulty(G, path, previous_path, weights, tuning):
   """Computes the difficulty of a path.
@@ -411,7 +314,7 @@ def viterbi(V, Tm, Em, initial_distribution = None):
   # Flip the path array since we were backtracking
   S = np.flip(S, axis=0)
 
-  return S
+  return S.astype(int)
 
 def build_transition_matrix(G, fingerings, weights, tuning):
   """Builds the transition matrix according to all the present fingerings.
@@ -463,60 +366,4 @@ def expand_emission_matrix(emission_matrix, all_paths):
     emission_matrix = np.vstack((np.ones(len(all_paths))))
 
   return emission_matrix
-  
-def display_notes_on_graph(G, path):
-  """Displays notes played on a plt graph.
-
-  Args:
-      G (networkx.Graph): Fretboard graph
-      path (tuple): Path to display
-  """
-  pos = nx.get_node_attributes(G,'pos')
-  plt.figure(figsize=(2,6))
-  nx.draw(G, pos)
-  nx.draw(G.subgraph(path), pos = pos, node_color="red")
-  plt.show()
-  
-def display_complete_graph(complete_graph):
-  positions = nx.get_node_attributes(complete_graph, "pos")
-  nx.draw(complete_graph, pos=positions)
-  plt.show()
-
-# def get_note_arrays(G, notes):
-#   """Returns note arrays from a list of theory.Notes"""
-#   note_arrays =[get_notes_in_graph(G, note) for note in notes]
-#   note_arrays = [note_array for note_array in note_arrays if len(note_array) > 0]
-  
-#   return note_arrays
-
-def fix_impossible_notes(tuning, notes, preserve_highest_note = False):
-  min_possible_pitch, max_possible_pitch = tuning.get_pitch_bounds()
-  
-  if preserve_highest_note:
-    highest_pitch_before = max([note.pitch for note in notes])
-    
-    highest_pitch_semitones_above_max = max(highest_pitch_before - max_possible_pitch, 0)
-    highest_pitch_after = highest_pitch_before - (math.ceil(highest_pitch_semitones_above_max/12) * 12)
-    #Highest pitch after processing (n octaves below highest before processing)
-    max_possible_pitch = highest_pitch_after
-    
-  res_notes = []
-  
-  for note in notes:
-    n_octaves_to_adjust = 0
-    
-    if note.pitch > max_possible_pitch:
-      semitones_above_max = max(note.pitch - max_possible_pitch, 0)
-      n_octaves_to_adjust = - math.ceil(semitones_above_max/12)
-    
-    if note.pitch < min_possible_pitch:
-      semitones_below_min = max(min_possible_pitch - note.pitch, 0)
-      n_octaves_to_adjust = math.ceil(semitones_below_min/12)
-      
-    new_note = transpose_note(note, n_octaves_to_adjust * 12)
-    
-    if new_note.pitch >= min_possible_pitch and new_note.pitch <= max_possible_pitch:
-      res_notes.append(new_note)
-      
-  return remove_duplicate_notes(res_notes)  
   

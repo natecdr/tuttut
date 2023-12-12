@@ -3,11 +3,12 @@ import pretty_midi
 
 from app import graph_utils
 from app.theory import Note, Tuning
+from app.fretboard import Fretboard
 
 class TestGraphUtils(unittest.TestCase):
     def setUp(self):
         pass
-    
+            
     def tearDown(self):
         pass
     
@@ -18,33 +19,25 @@ class TestGraphUtils(unittest.TestCase):
         self.assertEqual(notes1_pitches, notes2_pitches)
         
     def test_distance_between(self):
+        fretboard = Fretboard(Tuning())
+        
         p1 = (0, 0)
         
         p2 = (1, 0)
-        self.assertEqual(graph_utils.distance_between(p1, p2), 1/6)
+        self.assertEqual(fretboard.distance_between(p1, p2), 1/6)
         
         p2 = (0, 1)
-        self.assertEqual(graph_utils.distance_between(p1, p2), 1)
+        self.assertEqual(fretboard.distance_between(p1, p2), 1)
         
         p2 = (18, 4) #for 3 (18/6), 4 and 5 triangle
-        self.assertEqual(graph_utils.distance_between(p1, p2), 5) 
+        self.assertEqual(fretboard.distance_between(p1, p2), 5) 
         
     def test_get_fret_distance(self):
-        scale_length = 650
+        fretboard = Fretboard(Tuning())
         
-        nfret = 0
-        self.assertAlmostEqual(graph_utils.get_fret_distance(nfret, scale_length=scale_length), 0, places=1)
+        self.assertAlmostEqual(fretboard.get_fret_distance(nfret=0), 0, places=1)
         
-        nfret = 10
-        self.assertAlmostEqual(graph_utils.get_fret_distance(nfret, scale_length=scale_length), 285.20, places=1)
-        
-        scale_length = 660
-        
-        nfret = 0
-        self.assertAlmostEqual(graph_utils.get_fret_distance(nfret, scale_length=scale_length), 0, places=1)
-        
-        nfret = 20
-        self.assertAlmostEqual(graph_utils.get_fret_distance(nfret, scale_length=scale_length), 452.11, places=1)
+        self.assertAlmostEqual(fretboard.get_fret_distance(nfret=10), 285.20, places=1)
         
     def test_get_notes_in_graph(self):
         pass
@@ -104,8 +97,8 @@ class TestGraphUtils(unittest.TestCase):
         pass
     
     def test_fix_impossible_notes(self):
-        tuning = Tuning([Note(30), Note(40)]) 
-        tuning.nfrets = 10
+        fretboard = Fretboard(Tuning([Note(30), Note(40)]))
+        fretboard.tuning.nfrets = 10
         #Tuning bounds : 30 - 50
         
         notes = [
@@ -116,7 +109,7 @@ class TestGraphUtils(unittest.TestCase):
         ]
         
         self.assertSameNotes(
-            graph_utils.fix_impossible_notes(tuning, notes, preserve_highest_note=False),
+            fretboard.fix_oob_notes(notes, preserve_highest_note=False),
             [
                 Note(40),
                 Note(46),
@@ -126,7 +119,7 @@ class TestGraphUtils(unittest.TestCase):
         )
         
         self.assertSameNotes(
-            graph_utils.fix_impossible_notes(tuning, notes, preserve_highest_note=True),
+            fretboard.fix_oob_notes(notes, preserve_highest_note=True),
             [
                 Note(40),
                 Note(34),

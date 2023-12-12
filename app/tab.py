@@ -29,7 +29,7 @@ class Tab:
     self.measures = []
     self.midi = midi
     self.fretboard = Fretboard(tuning)
-    self.graph = self.fretboard.graph
+    # self.graph = self.fretboard.G
     self.weights = {"b":1, "height":1, "length":1, "n_changed_strings":1} if weights is None else weights
     self.timeline = self.build_timeline()
     
@@ -119,7 +119,7 @@ class Tab:
           notes_pitches = tuple(set([note.pitch for note in notes]))
           notes = [Note(pitch) for pitch in notes_pitches]
           
-          notes = fix_impossible_notes(self.tuning, notes, preserve_highest_note=False)
+          notes = self.fretboard.fix_oob_notes(notes, preserve_highest_note=False)
           
           note_options = self.fretboard.get_note_options(notes)
           
@@ -132,7 +132,7 @@ class Tab:
               fingerings_vocabulary += fingering_options 
                             
               if initial_probabilities is None:
-                isolated_difficulties = [1/compute_isolated_path_difficulty(self.graph, path, self.tuning) for path in fingering_options]
+                isolated_difficulties = [compute_isolated_path_difficulty(self.fretboard.G, path, self.tuning) for path in fingering_options]
                 initial_probabilities = difficulties_to_probabilities(isolated_difficulties)
               
               emission_matrix = expand_emission_matrix(emission_matrix, fingering_options)
@@ -141,17 +141,16 @@ class Tab:
             notes_sequence.append(notes_vocabulary.index(notes_pitches))
           else:
             notes_sequence.append(-1)
-          
+            
         res_measure["events"].append(event)
 
       tab["measures"].append(res_measure)
       
-    transition_matrix = build_transition_matrix(self.graph, fingerings_vocabulary, self.weights, self.tuning)
+    transition_matrix = build_transition_matrix(self.fretboard.G, fingerings_vocabulary, self.weights, self.tuning)
     
     initial_probabilities = np.hstack((initial_probabilities, np.zeros(len(transition_matrix) - len(initial_probabilities))))
     
     sequence_indices = viterbi(notes_sequence, transition_matrix, emission_matrix, initial_probabilities)
-    sequence_indices = [int(i) for i in sequence_indices]
 
     final_sequence = np.array(fingerings_vocabulary, dtype=object)[sequence_indices]
     
@@ -176,7 +175,7 @@ class Tab:
           continue
         
         for path_note in sequence[ievent]:
-          string, fret = self.graph.nodes[path_note]["pos"]   
+          string, fret = self.fretboard.G.nodes[path_note]["pos"]   
           event["notes"].append({
             "degree": path_note.degree,
             "octave": path_note.octave,
@@ -218,7 +217,6 @@ class Tab:
         res[istring] += "|"
 
     return res
-
 
   def to_json(self):
     """Exports the tab to a json file."""
