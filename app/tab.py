@@ -2,6 +2,7 @@ import traceback
 import numpy as np
 from pretty_midi.containers import TimeSignature
 from app.theory import Measure, Note
+from app.fretboard import Fretboard
 from app.midi_utils import *
 from app.graph_utils import *
 import networkx as nx
@@ -27,7 +28,8 @@ class Tab:
     self.nstrings = len(tuning.strings)
     self.measures = []
     self.midi = midi
-    self.graph = self._build_complete_graph()
+    self.fretboard = Fretboard(tuning)
+    self.graph = self.fretboard.graph
     self.weights = {"b":1, "height":1, "length":1, "n_changed_strings":1} if weights is None else weights
     self.timeline = self.build_timeline()
     
@@ -76,31 +78,6 @@ class Tab:
       timeline[time_signature_tick]["time_signature"] = time_signature
       
     return timeline
-    
-  def _build_complete_graph(self):
-    """Builds the complete graph representing the fretboard.
-    
-    Each fret for each string is a node, each node is connected to all the others.
-    Each edge contains the distance between their 2 nodes as their weight.
-
-    Returns:
-        nx.Graph: Graph representing the fretboard
-    """
-    note_map = self.tuning.get_all_possible_notes()
-
-    complete_graph = nx.Graph()
-    for istring, string in enumerate(note_map):
-      for inote, note in enumerate(string):
-        complete_graph.add_node(note, pos = (istring, inote))
-
-    complete_graph_nodes = list(complete_graph.nodes(data=True))
-
-    for node in complete_graph_nodes:
-      for node_to_link in complete_graph_nodes:
-        dst = 0 if node_to_link[1]['pos'][1] == 0 else distance_between(node[1]['pos'], node_to_link[1]['pos'])
-        complete_graph.add_edge(node[0], node_to_link[0], distance = dst)
-        
-    return complete_graph
 
   def gen_tab(self):
     """Generates the tab data and the fingerings."""
@@ -118,7 +95,7 @@ class Tab:
     emission_matrix = np.array([])
     initial_probabilities = None
 
-    for imeasure, measure in enumerate(self.measures):
+    for measure in self.measures:
       res_measure = {"events":[]}
 
       measure_events = measure.timeline
@@ -135,47 +112,35 @@ class Tab:
           event["time_signature_change"] = [ts.numerator, ts.denominator]
 
         if "notes" in event_types: #if notes contains one or more notes at a specific timing
-          try:      
-            event["notes"] = [] #Signals there are notes in this event
+          event["notes"] = [] #Signals there are notes in this event
+          
+          notes = event_types["notes"]
+          
+          notes_pitches = tuple(set([note.pitch for note in notes]))
+          notes = [Note(pitch) for pitch in notes_pitches]
+          
+          notes = fix_impossible_notes(self.tuning, notes, preserve_highest_note=False)
+          
+          note_options = self.fretboard.get_note_options(notes)
+          
+          if notes_pitches not in notes_vocabulary:
+            fingering_options = self.fretboard.get_possible_fingerings(note_options)
             
-            notes = event_types["notes"]
-            
-            notes_pitches = tuple(set([note.pitch for note in notes]))
-            notes = [Note(pitch) for pitch in notes_pitches]
-            
-            notes = fix_impossible_notes(self.tuning, notes, preserve_highest_note=False)
-            
-            note_arrays = get_note_arrays(self.graph, notes)
-            
-            if notes_pitches not in notes_vocabulary:
-              all_paths = find_all_paths(self.graph, note_arrays)
+            if len(fingering_options) > 0:   
+              notes_vocabulary.append(notes_pitches)
               
-              if len(all_paths) > 0:   
-                notes_vocabulary.append(notes_pitches)
-                
-                fingerings_vocabulary += all_paths 
-                              
-                if initial_probabilities is None:
-                  isolated_difficulties = [1/compute_isolated_path_difficulty(self.graph, path, self.tuning) for path in all_paths]
-                  initial_probabilities = difficulties_to_probabilities(isolated_difficulties)
-                
-                emission_matrix = expand_emission_matrix(emission_matrix, all_paths)
+              fingerings_vocabulary += fingering_options 
+                            
+              if initial_probabilities is None:
+                isolated_difficulties = [1/compute_isolated_path_difficulty(self.graph, path, self.tuning) for path in fingering_options]
+                initial_probabilities = difficulties_to_probabilities(isolated_difficulties)
               
-            if notes_pitches in notes_vocabulary:
-              notes_sequence.append(notes_vocabulary.index(notes_pitches))
-            else:
-              notes_sequence.append(-1)
+              emission_matrix = expand_emission_matrix(emission_matrix, fingering_options)
             
-          except Exception as e:
-            print("==================================")
-            print(traceback.format_exc())
-            print("----------------------------------")
-            print("Note arrays :", note_arrays)
-            print("Notes :", notes)
-            print(Note(notes[0].pitch).name)
-            print("Measure no.", imeasure)
-            print("==================================")
-            break
+          if notes_pitches in notes_vocabulary:
+            notes_sequence.append(notes_vocabulary.index(notes_pitches))
+          else:
+            notes_sequence.append(-1)
           
         res_measure["events"].append(event)
 

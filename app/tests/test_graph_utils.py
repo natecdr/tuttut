@@ -17,7 +17,6 @@ class TestGraphUtils(unittest.TestCase):
         
         self.assertEqual(notes1_pitches, notes2_pitches)
         
-    
     def test_distance_between(self):
         p1 = (0, 0)
         

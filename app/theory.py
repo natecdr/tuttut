@@ -6,12 +6,11 @@ from collections import defaultdict
 
 class Note:
   """Note object."""
-  def __init__(self, pitch):
+  def __init__(self, pitch : int):
     """Constructor for the Note object.
 
     Args:
-        degree (Degree): Degree of the note
-        octave (int): Octave of the note
+        pitch (int) : MIDI note number of the note
     """
 
     self.pitch = pitch

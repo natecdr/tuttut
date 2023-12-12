@@ -94,31 +94,31 @@ def is_edge_possible(possible_note, possible_target_note, G):
   is_different_string = G.nodes[possible_note]["pos"][0] != G.nodes[possible_target_note]["pos"][0]
   return is_distance_possible and is_different_string
 
-def find_all_paths(G, note_arrays): 
-  """Returns all possible paths in a path graph
+# def find_all_paths(G, note_arrays): 
+#   """Returns all possible paths in a path graph
 
-  Args:
-      G (networkx.Graph): Fretboard graph
-      note_arrays (list): List of possible positions for the notes
+#   Args:
+#       G (networkx.Graph): Fretboard graph
+#       note_arrays (list): List of possible positions for the notes
 
-  Returns:
-      list: List of paths
-  """
-  paths = []
+#   Returns:
+#       list: List of paths
+#   """
+#   paths = []
   
-  if len(note_arrays) == 1:
-    return [(note,) for note in note_arrays[0]]
+#   if len(note_arrays) == 1:
+#     return [(note,) for note in note_arrays[0]]
 
-  for note_arrays_permutation in list(itertools.permutations(note_arrays)):
-    path_graph = build_path_graph(G, note_arrays_permutation)
-    # display_path_graph(path_graph)
-    for possible_source_node in note_arrays_permutation[0]:
-      permutation_paths = nx.all_simple_paths(path_graph, possible_source_node, target=note_arrays_permutation[-1])
-      for path in permutation_paths:
-        if not is_path_already_checked(paths, path) and is_path_possible(G, path, note_arrays_permutation):
-          paths.append(tuple(path))
+#   for note_arrays_permutation in list(itertools.permutations(note_arrays)):
+#     path_graph = build_path_graph(G, note_arrays_permutation)
+#     # display_path_graph(path_graph)
+#     for possible_source_node in note_arrays_permutation[0]:
+#       permutation_paths = nx.all_simple_paths(path_graph, possible_source_node, target=note_arrays_permutation[-1])
+#       for path in permutation_paths:
+#         if not is_path_already_checked(paths, path) and is_path_possible(G, path, note_arrays_permutation):
+#           paths.append(tuple(path))
             
-  return paths
+#   return paths
 
 def is_path_already_checked(paths, current_path):
   """Checks if paths is already present in explored paths, whatever the order. 
@@ -482,12 +482,12 @@ def display_complete_graph(complete_graph):
   nx.draw(complete_graph, pos=positions)
   plt.show()
 
-def get_note_arrays(G, notes):
-  """Returns note arrays from a list of theory.Notes"""
-  note_arrays =[get_notes_in_graph(G, note) for note in notes]
-  note_arrays = [note_array for note_array in note_arrays if len(note_array) > 0]
+# def get_note_arrays(G, notes):
+#   """Returns note arrays from a list of theory.Notes"""
+#   note_arrays =[get_notes_in_graph(G, note) for note in notes]
+#   note_arrays = [note_array for note_array in note_arrays if len(note_array) > 0]
   
-  return note_arrays
+#   return note_arrays
 
 def fix_impossible_notes(tuning, notes, preserve_highest_note = False):
   min_possible_pitch, max_possible_pitch = tuning.get_pitch_bounds()
