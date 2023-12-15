@@ -4,52 +4,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import itertools
 
-def distance_between(p1, p2):
-  """Computes the distance between two points. 
-  Distance between 2 strings is assumed to be 1/6.
-
-  Args:
-      x (tuple): Source point
-      y (tuple): Destination point
-
-  Returns:
-      float: Distance between the two points
-  """
-  p1 = (p1[0]/6, p1[1])
-  p2 = (p2[0]/6, p2[1])
-  return math.dist(p1,p2)
-
-def get_fret_distance(nfret, scale_length = 650):
-  """Returns the distance of the fret from the nut.
-
-  Args:
-      nfret (int): Number of the fret
-      scale_length (int, optional): Scale length of the guitar (Distance beteen the nut and the bridge). Defaults to 650.
-
-  Returns:
-      float: Distance of the fret from the nut
-  """
-  res = 0
-  for i in range(nfret):
-    fret_height = scale_length / 17.817
-    res += fret_height
-    scale_length -= fret_height
-
-  return res
-
-def get_notes_in_graph(G, note):
-  """Get all nodes that correspond to a specific note in a graph.
-
-  Args:
-      G (networkx.Graph): Fretboard graph
-      note (Note): Note to find on the fretboard
-
-  Returns:
-      list: List of nodes thar play the specified note
-  """
-  nodes = list(G.nodes)
-
-  return [node for node in nodes if node == note]
+from app.theory import *
 
 def build_path_graph(G, note_arrays):
   """Returns a path graph corresponding to all possible notes of a chord.
@@ -76,7 +31,7 @@ def build_path_graph(G, note_arrays):
 
   return res 
 
-def is_edge_possible(possible_note, possible_target_note, G):
+def is_edge_possible(possible_note, possible_target_note, G): ####### Should be in Fretboard but is used by build_path_graph
   """Checks if a connection is possible between 2 nodes
 
   Args:
@@ -90,32 +45,6 @@ def is_edge_possible(possible_note, possible_target_note, G):
   is_distance_possible = G[possible_note][possible_target_note]["distance"] < 6
   is_different_string = G.nodes[possible_note]["pos"][0] != G.nodes[possible_target_note]["pos"][0]
   return is_distance_possible and is_different_string
-
-def find_all_paths(G, note_arrays): 
-  """Returns all possible paths in a path graph
-
-  Args:
-      G (networkx.Graph): Fretboard graph
-      note_arrays (list): List of possible positions for the notes
-
-  Returns:
-      list: List of paths
-  """
-  paths = []
-  
-  if len(note_arrays) == 1:
-    return [(note,) for note in note_arrays[0]]
-
-  for note_arrays_permutation in list(itertools.permutations(note_arrays)):
-    path_graph = build_path_graph(G, note_arrays_permutation)
-    # display_path_graph(path_graph)
-    for possible_source_node in note_arrays_permutation[0]:
-      permutation_paths = nx.all_simple_paths(path_graph, possible_source_node, target=note_arrays_permutation[-1])
-      for path in permutation_paths:
-        if not is_path_already_checked(paths, path) and is_path_possible(G, path, note_arrays_permutation):
-          paths.append(tuple(path))
-            
-  return paths
 
 def is_path_already_checked(paths, current_path):
   """Checks if paths is already present in explored paths, whatever the order. 
@@ -133,31 +62,7 @@ def is_path_already_checked(paths, current_path):
   
   return False
 
-def is_path_possible(G, path, note_arrays):
-  """Checks if path is possible and playable.
-
-  Args:
-      G (networkx.Graph): Fretboard graph
-      path (tuple): Notes path
-      note_arrays (list): List of possible positions for the notes
-
-  Returns:
-      bool: If the path is possible and playable
-  """
-  #No 2 fingers on a single string
-  plucked_strings = [G.nodes[note]["pos"][0] for note in path]
-  one_per_string = len(plucked_strings) == len(set(plucked_strings))
-
-  #No more than 5 fret span
-  used_frets = [G.nodes[note]["pos"][1] for note in path if G.nodes[note]["pos"][1] != 0]
-  max_fret_span = (max(used_frets) - min(used_frets)) < 5 if len(used_frets) > 0 else True
-
-  #Path doesn't visit more nodes than necessary
-  right_length = len(path) <= len(note_arrays)
-
-  return one_per_string and max_fret_span and right_length
-
-def compute_path_difficulty(G, path, previous_path, weights):
+def compute_path_difficulty(G, path, previous_path, weights, tuning):
   """Computes the difficulty of a path.
 
   Args:
@@ -168,20 +73,23 @@ def compute_path_difficulty(G, path, previous_path, weights):
   Returns:
       float: Difficulty metric of a path
   """
-  height = get_height(G, path, previous_path)
-  previous_height = get_height(G, previous_path) if len(previous_path) > 0 else 0
-
-  dheight = np.abs(height-previous_height)
-
-  length = get_path_length(G, path)
+  raw_height = get_raw_height(G, path, previous_path)
+  previous_raw_height = get_raw_height(G, previous_path) if len(previous_path) > 0 else 0
   
-  n_changed_strings = get_n_changed_strings(G, path, previous_path)
+  height = get_height_score(G, path, tuning, previous_path)
+
+  dheight = get_dheight_score(raw_height, previous_raw_height, tuning)
+
+  # length = get_path_length(G, path)
+  span = get_path_span(G, path)
   
-  easiness = laplace_distro(dheight, b=weights["b"]) * 1/(1+height * weights["height"]) * 1/(1+length * weights["length"]) * 1/(1+n_changed_strings * weights["n_changed_strings"])
+  n_changed_strings = get_n_changed_strings(G, path, previous_path, tuning)
+  
+  easiness = laplace_distro(dheight, b=weights["b"]) * 1/(1+height * weights["height"]) * 1/(1+span * weights["length"]) * 1/(1+n_changed_strings * weights["n_changed_strings"])
   
   return 1/easiness
 
-def compute_isolated_path_difficulty(G, path):
+def compute_isolated_path_difficulty(G, path, tuning):
   """Computes the difficulty of a path not taking into account the previous one played.
 
   Args:
@@ -192,11 +100,11 @@ def compute_isolated_path_difficulty(G, path):
   Returns:
       float: Difficulty metric of a path
   """
-  height = get_height(G, path)
+  height = get_height_score(G, path, tuning)
   
-  length = get_path_length(G, path)
+  span = get_path_span(G, path)
   
-  easiness = 1/(1+height) * 1/(1+length)
+  easiness = 1/(1+height) * 1/(1+span)
   
   return 1/easiness
 
@@ -231,7 +139,7 @@ def get_nfingers(G, path):
     
   return count
 
-def get_n_changed_strings(G, path, previous_path):
+def get_n_changed_strings(G, path, previous_path, tuning):
   """Returns the number of strings that have changed compared to the previous shape.
 
   Args:
@@ -246,11 +154,28 @@ def get_n_changed_strings(G, path, previous_path):
   previous_used_strings = set([G.nodes[note]["pos"][0] for note in previous_path])
 
   n_changed_strings = len(path) - len(set(used_strings).intersection(previous_used_strings))
+  
+  n_changed_strings_score = n_changed_strings/tuning.nstrings
+  assert 0 <= n_changed_strings_score <= 1
+  return n_changed_strings_score
 
-  return n_changed_strings
+def get_height_score(G, path, tuning, previous_path=None):
+  """Returns the height score for calculating difficulty (0-1)
 
-def get_height(G, path, previous_path=None):
-  """Returns the average height on the fretboard of gighest and lowest notes in the path.
+    Args:
+        G (networkx.Graph): Fretboard graph
+        path (tuple): Path to compute the height for
+        previous_path (tuple, optional): Previous played path. Defaults to None.
+
+    Returns:
+        float: Height of the path if possible, height of the previous path instead
+  """
+  height = get_raw_height(G, path, previous_path)/tuning.nfrets
+  assert 0 <= height <= 1
+  return get_raw_height(G, path, previous_path)/tuning.nfrets
+    
+def get_raw_height(G, path, previous_path=None):
+  """Returns the average height on the fretboard of highest and lowest notes in the path.
 
   Args:
       G (networkx.Graph): Fretboard graph
@@ -268,8 +193,19 @@ def get_height(G, path, previous_path=None):
   elif previous_path is None:
     return 0
   else:
-    return get_height(G, previous_path)
+    return get_raw_height(G, previous_path)
+  
+def get_dheight_score(height, previous_height, tuning):
+  """Returns the score for the distance between previous fingering height and current fingering height
 
+  Args:
+      height (int): current fingering height
+      previous_height (int): previous fingering height
+  """
+  dheight = np.abs(height-previous_height)/tuning.nfrets
+  assert 0 <= dheight <= 1
+  return dheight
+    
 def get_path_length(G, path):
   """Returns the total length of a path.
   
@@ -285,7 +221,27 @@ def get_path_length(G, path):
   res = 0
   for i in range(len(path)-1):
     res += G[path[i]][path[i+1]]["distance"]
-  return res
+    
+  length = res/10 #10 probably the maximum distance between notes
+  assert 0 <= length <= 1
+  return length
+
+def get_path_span(G, path):
+  """Returns the vertical span of a path.
+
+  Args:
+      G (networkx.Graph): Fretboard graph
+      path (tuple): Path to compute the span for
+
+  Returns:
+      float: Span of the path
+  """
+  
+  y = [G.nodes[note]["pos"][1] for note in path if G.nodes[note]["pos"][1] != 0]
+  
+  span = (max(y) - min(y))/5 if len(y) > 0 else 0
+  assert 0 <= span <= 1
+  return span
   
 def display_path_graph(path_graph, show_distances=True, show_names=True):
   """Displays the path graph on a plt plot.
@@ -357,9 +313,9 @@ def viterbi(V, Tm, Em, initial_distribution = None):
   # Flip the path array since we were backtracking
   S = np.flip(S, axis=0)
 
-  return S
+  return S.astype(int)
 
-def build_transition_matrix(G, fingerings, weights):
+def build_transition_matrix(G, fingerings, weights, tuning):
   """Builds the transition matrix according to all the present fingerings.
 
   Args:
@@ -371,7 +327,7 @@ def build_transition_matrix(G, fingerings, weights):
   """
   transition_matrix = np.zeros((len(fingerings), len(fingerings)))
   for iprevious in range(len(fingerings)):
-    difficulties = np.array([1/compute_path_difficulty(G, fingerings[icurrent], fingerings[iprevious], weights)
+    difficulties = np.array([1/compute_path_difficulty(G, fingerings[icurrent], fingerings[iprevious], weights, tuning)
                             for icurrent in range(len(fingerings))])
     
     transition_matrix[iprevious] = difficulties_to_probabilities(difficulties)
@@ -410,15 +366,3 @@ def expand_emission_matrix(emission_matrix, all_paths):
 
   return emission_matrix
   
-def display_notes_on_graph(G, path):
-  """Displays notes played on a plt graph.
-
-  Args:
-      G (networkx.Graph): Fretboard graph
-      path (tuple): Path to display
-  """
-  pos = nx.get_node_attributes(G,'pos')
-  plt.figure(figsize=(2,6))
-  nx.draw(G, pos)
-  nx.draw(G.subgraph(path), pos = pos, node_color="red")
-  plt.show()

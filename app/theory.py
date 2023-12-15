@@ -1,17 +1,16 @@
 from enum import Enum
 import numpy as np
 import app.midi_utils as midi_utils
-import app.theory as theory
 from pretty_midi import note_number_to_name
+from collections import defaultdict
 
 class Note:
   """Note object."""
-  def __init__(self, pitch):
+  def __init__(self, pitch : int):
     """Constructor for the Note object.
 
     Args:
-        degree (Degree): Degree of the note
-        octave (int): Octave of the note
+        pitch (int) : MIDI note number of the note
     """
 
     self.pitch = pitch
@@ -25,7 +24,7 @@ class Note:
     Two notes are considered equal if they are note objects and their degrees and octaves are the same.
     """
     return isinstance(other, Note) and self.pitch == other.pitch
-
+  
   def __hash__(self):
     """Computes the hash for the Note."""
     return hash((self.name, id(self)))
@@ -63,6 +62,7 @@ class Tuning:
     """
     self._strings = np.array(strings)
     self.nstrings = len(strings)
+    self.nfrets = 20
 
   @property
   def strings(self):
@@ -73,7 +73,7 @@ class Tuning:
     """
     return self._strings
   
-  def get_all_possible_notes(self, nfrets = 20):
+  def get_all_possible_notes(self):
     """Returns all possible_notes on a fretboard for k strings and n frets.
 
     Args:
@@ -86,50 +86,21 @@ class Tuning:
     res = []
     for string in self.strings:
       string_notes = []
-      for ifret in range(nfrets):
-        string_notes.append(theory.Note(string.pitch + ifret))
+      for ifret in range(self.nfrets + 1): # + 1 to take into account fret 0
+        string_notes.append(Note(string.pitch + ifret))
       res.append(string_notes)
 
     return res
-
-class Beat:
-  """Beat object."""
-  def __init__(self, imeasure, ibeat, tab):
-    """Constructor for the Beat object.
-
-    Args:
-        imeasure (int): Measure number in the song
-        ibeat (int): Beat number in the measure
-        tab (Tab): Tab object
-    """
-    self.ibeat = ibeat
-    self.imeasure = imeasure
-    self.tab = tab
-    self.notes = None
-
-  def populate(self, notes_to_add, midi, time_signature):
-    """Populates the Beat with its corresponding notes.
-
-    Args:
-        notes_to_add (list): List of notes to add to the beat
-        midi (pretty_midi.PrettyMIDI): MIDI object
-        time_signature (pretty_midi.TimeSignature): Current time signature of the song
-    """
-    measure_length = midi_utils.measure_length_ticks(midi, time_signature)
-
-    self.notes = {}
+  
+  def get_pitch_bounds(self):
+    min_pitch = min([string.pitch for string in self.strings])
+    max_pitch = max([string.pitch for string in self.strings]) + self.nfrets
     
-    for note in notes_to_add:
-      tick = midi.time_to_tick(note.start) - self.ibeat*midi.resolution - self.imeasure*measure_length
-      timing = tick/midi.resolution + self.ibeat
-      if timing in self.notes:
-        self.notes[timing].append(note)
-      else:
-        self.notes[timing] = [note]
+    return min_pitch, max_pitch
 
-class Measure: #Measure class
-  """Measure object."""
-  def __init__(self, tab, imeasure, time_signature):
+class Measure: 
+  """Measure class."""
+  def __init__(self, tab, imeasure, time_signature, measure_start, measure_end):
     """Constructor for the Measure object.
 
     Args:
@@ -137,38 +108,15 @@ class Measure: #Measure class
         imeasure (int): Measure number in the song
         time_signature (pretty_midi.TimeSignature): Current time signature of the song
     """
-    self.beats = np.empty(time_signature.numerator, dtype = Beat)
     self.imeasure = imeasure
     self.time_signature = time_signature
     self.tab = tab
-
-  def populate(self, notes):
-    """Populates the Measure with beats.
-
-    Args:
-        notes (list): Notes to add to the beats
-    """
-    midi = self.tab.midi
-    measure_length = midi_utils.measure_length_ticks(midi, self.time_signature)
-    beat_ticks = np.arange(self.imeasure*measure_length,self.imeasure*measure_length + measure_length, step=midi.resolution)
     
-    for ibeat in range(len(self.beats)): 
-      current_beat_tick = beat_ticks[ibeat]
-      beat_start = current_beat_tick
-      beat_end = current_beat_tick + midi.resolution
-      beat_notes = midi_utils.get_notes_between(midi, notes, beat_start, beat_end)
-      beat = Beat(self.imeasure, ibeat, self.tab)
-      beat.populate(beat_notes, midi, self.time_signature)
-      self.beats[ibeat] = beat
+    self.measure_start = measure_start
+    self.measure_end = measure_end
+    
+    self.timeline = midi_utils.get_events_between(self.tab.timeline, measure_start, measure_end)
 
-  def get_all_notes(self):
-    """Returns all notes in the measure.
-
-    Returns:
-        list: All notes in the measure's beats
-    """
-    notes = {}
-    for beat in self.beats: 
-      notes.update(beat.notes)
-
-    return notes
+  @property
+  def duration_ticks(self):
+    return self.measure_end - self.measure_start

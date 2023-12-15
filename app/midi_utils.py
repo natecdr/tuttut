@@ -1,8 +1,6 @@
-import numpy as np
 import pretty_midi
-import networkx as nx
-import matplotlib.pyplot as plt
-from app.graph_utils import *
+import app.theory as theory
+# from app.graph_utils import 
 
 def measure_length_ticks(midi, time_signature): 
   """Returns the number of ticks in a measure for a midi file.
@@ -93,10 +91,31 @@ def quantize(midi):
   Args:
       midi (pretty_midi.PrettyMIDI): MIDI object to quantize
   """
+  quantization_factor = 32
+  
   for instrument in midi.instruments:
       quantized_notes = []
       for note in instrument.notes:
-          rounded = round_to_multiple(midi.time_to_tick(note.start), base=midi.resolution/8)
+          rounded = round_to_multiple(midi.time_to_tick(note.start), base=midi.resolution/quantization_factor)
           quantized_notes.append(pretty_midi.Note(velocity = note.velocity, pitch = note.pitch, start = midi.tick_to_time(rounded), end=note.end))
 
       instrument.notes = quantized_notes
+      
+def transpose_note(note, semitones):
+    return theory.Note(note.pitch + semitones)
+
+def remove_duplicate_notes(notes):
+  pitches = []
+  res_notes = []
+  for note in notes:
+    if not note.pitch in pitches:
+      pitches.append(note.pitch)
+      res_notes.append(note)
+      
+  return res_notes
+
+def sort_notes_by_pitch(notes):
+  return sorted(notes, key = lambda n: n.pitch)
+
+def get_events_between(timeline, start_ticks, end_ticks):
+    return {key: timeline[key] for key in timeline.keys() if start_ticks <= key < end_ticks}
