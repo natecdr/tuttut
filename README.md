@@ -1,5 +1,5 @@
-# MIDI to Guitar tabs
-Converts a MIDI file to ASCII guitar tabs.
+# Tuttut
+Converts MIDI files to guitar tabs.
 
 ## Using the tool
 
