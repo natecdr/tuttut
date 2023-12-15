@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 import itertools
 
 from app.theory import *
-from app.midi_utils import transpose_note, remove_duplicate_notes, sort_notes_by_pitch
 
 def build_path_graph(G, note_arrays):
   """Returns a path graph corresponding to all possible notes of a chord.

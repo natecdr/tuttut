@@ -9,6 +9,7 @@ import networkx as nx
 import json
 import os
 from pathlib import Path
+from time import time
 
 class Tab:
   """Tab object."""
@@ -29,7 +30,6 @@ class Tab:
     self.measures = []
     self.midi = midi
     self.fretboard = Fretboard(tuning)
-    # self.graph = self.fretboard.G
     self.weights = {"b":1, "height":1, "length":1, "n_changed_strings":1} if weights is None else weights
     self.timeline = self.build_timeline()
     
@@ -81,6 +81,7 @@ class Tab:
 
   def gen_tab(self):
     """Generates the tab data and the fingerings."""
+    
     tab = {}
     
     tab["tuning"] = [string.pitch for string in self.tuning.strings]
@@ -94,6 +95,7 @@ class Tab:
 
     emission_matrix = np.array([])
     initial_probabilities = None
+    
 
     for measure in self.measures:
       res_measure = {"events":[]}
@@ -145,7 +147,7 @@ class Tab:
         res_measure["events"].append(event)
 
       tab["measures"].append(res_measure)
-      
+            
     transition_matrix = build_transition_matrix(self.fretboard.G, fingerings_vocabulary, self.weights, self.tuning)
     
     initial_probabilities = np.hstack((initial_probabilities, np.zeros(len(transition_matrix) - len(initial_probabilities))))
@@ -155,6 +157,7 @@ class Tab:
     final_sequence = np.array(fingerings_vocabulary, dtype=object)[sequence_indices]
     
     tab = self.populate_tab_notes(tab, final_sequence)
+    
     
     return tab
 

@@ -23,12 +23,13 @@ if __name__ == "__main__":
   args = parser.parse_args()
 
   file = args.source.with_suffix(".mid")
+  weights = {'b': 1, 'height': 1, 'length': 1, 'n_changed_strings': 1}
 
   try:
     start = time()
     f = pretty_midi.PrettyMIDI(Path("./midis", file).as_posix())
-    # tab = Tab(file.stem, Tuning(), f)
-    tab = Tab(file.stem, Tuning([Note(69), Note(64), Note(60), Note(67)]), f)
+    tab = Tab(file.stem, Tuning(), f, weights=weights)
+    # tab = Tab(file.stem, Tuning([Note(69), Note(64), Note(60), Note(67)]), f, weights=weights)
     tab.to_ascii()
     tab.to_json()
     print("Time :", time() - start)
