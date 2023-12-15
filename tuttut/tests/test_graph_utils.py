@@ -1,9 +1,9 @@
 import unittest
 import pretty_midi
 
-from app import graph_utils
-from app.theory import Note, Tuning
-from app.fretboard import Fretboard
+from tuttut import graph_utils
+from tuttut.theory import Note, Tuning
+from tuttut.fretboard import Fretboard
 
 class TestGraphUtils(unittest.TestCase):
     def setUp(self):

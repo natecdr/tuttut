@@ -1,11 +1,12 @@
 import pretty_midi
-from app.tab import Tab
-from app.theory import Tuning, Note
+from tuttut.tab import Tab
+from tuttut.theory import Tuning, Note
 import argparse
 import traceback
 from time import time
 import numpy as np
 from pathlib import Path
+np.seterr(divide="ignore")
 
 def init_parser():
   """Initializes the argument parser for execution.
@@ -18,7 +19,6 @@ def init_parser():
   return parser
 
 if __name__ == "__main__":
-  np.seterr(divide="ignore")
   parser = init_parser()
   args = parser.parse_args()
 
