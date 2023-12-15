@@ -1,0 +1,31 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "tuttut"
+version = "0.0.1"
+authors = [
+  { name="Nathan Candre", email="nathan.candre@gmail.com" },
+]
+description = "A package to convert MIDI files to string instrument tabs."
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "matplotlib==3.5.3",
+    "networkx==2.8.6",
+    "numpy==1.23.2",
+    "pretty_midi==0.2.9"
+]
+
+[project.urls]
+Homepage = "https://github.com/natecdr/tuttut"
+Issues = "https://github.com/natecdr/tuttut/issues"
+
+[project.gui-scripts]
+tuttut = "tuttut:gui"
