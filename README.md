@@ -1,4 +1,6 @@
-# Tuttut
+<p align="center">
+	<img src="https://i.ibb.co/FYPcVrK/tuttut.png" alt="Tuttut" height="200" border="0"/>
+</p>
 Converts MIDI files to guitar tabs.
 
 ## Using the tool
