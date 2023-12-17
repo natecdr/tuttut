@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Tuttut</title>
+        <script>
+            // window.eel = {
+            //     does_file_exist: (path) => false,
+            //     does_folder_exist: (path) => false,
+            //     ask_files: () => [],
+            //     ask_folder: () => "",
+            //     open_folder_in_explorer: (path) => {},
+            //     import_configuration: () => {},
+            //     export_configuration: (configuration) => {}
+            // }
+        </script>
+        <script type="text/javascript" src="/eel.js"></script>
+        <script type="text/javascript" src="/js/constants.js"></script>
+        <script type="text/javascript" src="/js/initialise.js"></script>
+        <script type="text/javascript" src="/js/configuration.js"></script>
+        <script type="text/javascript" src="/js/staticEvents.js"></script>
+        <script type="text/javascript" src="/js/interface.js"></script>
+        <script type="text/javascript" src="/js/utils.js"></script>
+        <script type="text/javascript" src="/js/modal.js"></script>
+        <script type="text/javascript" src="/js/messages.js"></script>
+        <script type="text/javascript" src="/js/cleaning.js"></script>
+        <link rel="stylesheet" href="/css/general.css">
+        <link rel="stylesheet" href="/css/main.css">
+        <link rel="stylesheet" href="/css/modal.css">
+    </head>
+
+    <body>
+        <div class="main">
+            <div id="header">
+                <a href="https://github.com/natecdr/tuttut" target="_blank"><img src="img/tuttut.png"/></a>
+            </div>
+            <!-- <hr> -->
+            <main>
+                <div id="section-main">
+                    <!-- <div class="header noselect">
+                        <h2>
+                            <span>Scans</span>
+                        </h2>
+                    </div> -->
+                    <div id="content">
+                        <div id="files-list-header">
+                            <div id="datas-add-buttons">
+                                <button id="select-midi">
+                                    Select a MIDI file
+                                </button>
+                            </div>
+                        </div>
+                        <div id="files-list"></div>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <div id="modal-area" class="modal-coverage modal-coverage-hidden"></div>
+
+        <div id="spinner-root" class="loading-spinner-wrapper">
+            <div>
+                <div class="loading-spinner"></div>
+                <span class="loading-label">Initialisation...</span>
+            </div>
+        </div>
+    </body>
+</html>
