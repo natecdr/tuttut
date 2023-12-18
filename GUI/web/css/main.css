@@ -2,19 +2,17 @@
 #header {
     text-align: center;
     line-height: 0;
-    border-bottom: 2px solid black;
+    border-bottom: 2px solid var(--primary);
 } 
 
 #header img {
     display:inline-block;
     height: 50px;
+    -webkit-user-drag: none;
+    user-select: none;
 }
 
-#header > a {
-    display: inherit;
-}
-
-#header > a:hover {
+#header img:hover {
     -webkit-mask-image: linear-gradient(-75deg, rgb(0, 0, 0) 30%, rgba(0, 0, 0, 0.50) 50%, rgb(0, 0, 0) 70%);
     -webkit-mask-size: 200%;
     animation: shine 2s;
@@ -46,6 +44,7 @@ main {
 /* Additional Files */
 
 #section-main{
+    text-align: center;
     max-height: 100%;
     overflow:auto;
 }
@@ -61,10 +60,25 @@ main {
     flex-direction: column;
 }
 
-#datas-add-buttons {
+#select-midi {
     display: grid;
-    grid-gap: 5px;
-    margin:5px
+    border-bottom: 2px solid var(--primary);
+}
+
+#select-midi button {
+    margin: 5px 5px 0px 5px;
+}
+
+#midi-file-path {
+    margin: 5px 5px 5px 0px;
+}
+
+#output-folder-path {
+    margin: 5px 5px 5px 0px;
+}
+
+#execution {
+    margin: 5px 5px 0px 5px;
 }
 
 #files-list {

@@ -4,10 +4,7 @@ from pathlib import Path
 
 import eel
 
-import config
-import gui_utils as utils
-import dialogs
-import generate
+from GUI import config, gui_utils, dialogs, generate
 
 class UIOpenMode:
     NONE = 0
@@ -19,7 +16,7 @@ eel.init(config.FRONTEND_ASSET_FOLDER)
 
 def __setup_logging_ui_forwarding():
     module_logger = logging.getLogger('web_gui')
-    handler = logging.StreamHandler(utils.ForwardToFunctionStream(print_ui))
+    handler = logging.StreamHandler(gui_utils.ForwardToFunctionStream(print_ui))
     handler.setFormatter(logging.Formatter('%(message)s'))
     module_logger.addHandler(handler)
 
@@ -31,15 +28,14 @@ def initialise():
 @eel.expose
 def open_folder_in_explorer(path):
     """ Ouvre un fichier dans l'explorateur de fichiers. """
-    if not utils.open_output_folder(path):
+    if not gui_utils.open_output_folder(path):
         pass  # TODO Send message saying this failed
 
 @eel.expose
-def ask_files():
+def ask_file():
     """ Demande un/des fichiers à l'utilisateur."""
-    files = dialogs.ask_files()
-    files = utils.format_paths(files)
-    return files
+    file = dialogs.ask_file()
+    return file
 
 @eel.expose
 def ask_folder():
@@ -60,11 +56,11 @@ def does_folder_exist(path):
 def get_files_in_folder(path):
     """ Retourne les fichiers présents dans un dossier. """
     paths = [str(Path(path, filename)) for filename in os.listdir(path)]
-    paths = utils.format_paths(paths)
+    paths = gui_utils.format_paths(paths)
     return paths
 
 @eel.expose
-def clean_files(paths, output_folder, preset):
+def tabify(path, output_folder):
     """Lance le nettoyage.
 
     Args:
@@ -72,7 +68,7 @@ def clean_files(paths, output_folder, preset):
         output_folder (str): Chemin du dossier de sortie
         preset (Dict): Paramètres de nettoyage
     """
-    generate.clean_files(paths, output_folder, preset)
+    generate.tabify(path, output_folder)
 
     print_ui('Complete.\n')
     eel.signalCleaningComplete(True)()
@@ -92,13 +88,13 @@ def is_halted():
 def start(open_mode):
     """ Start the UI using Eel """
     try:
-        chrome_available = utils.can_use_chrome()
+        chrome_available = gui_utils.can_use_chrome()
         if open_mode == UIOpenMode.CHROME and chrome_available:
             eel.start('index.html', size=(650, 672), port=0)
         elif open_mode == UIOpenMode.USER_DEFAULT or (open_mode == UIOpenMode.CHROME and not chrome_available):
             eel.start('index.html', size=(650, 672), port=0, mode='user default')
         else:
-            port = utils.get_port()
+            port = gui_utils.get_port()
             print('Server starting at http://localhost:' + str(port) + '/index.html')
             eel.start('index.html', size=(650, 672), host='localhost', port=port, mode=None, close_callback=lambda x, y: None)
     except (SystemExit, KeyboardInterrupt):

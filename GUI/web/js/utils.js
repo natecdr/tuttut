@@ -25,8 +25,8 @@ const doesFolderExist = async (path) => {
  * Demande à l'utilisateur un/des fichiers.
  * @returns Liste de chemins de fichiers
  */
-const askForFiles = async () => {
-    return await eel.ask_files()();
+const askForFile = async () => {
+    return await eel.ask_file()();
 };
 
 /**

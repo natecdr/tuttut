@@ -4,13 +4,8 @@ eel.expose(putMessageInOutput);
  * @param {String} message 
  */
 function putMessageInOutput(message) {
-    const outputNode = document.querySelector('#output textarea');
-    outputNode.value += message; // Add the message
-    if (!message.endsWith('\n')) {
-        outputNode.value += '\n'; // If there was no new line, add one
-    }
-
-    outputNode.scrollTop = outputNode.scrollHeight
+    const outputNode = document.getElementById("execution-text");
+    outputNode.innerHTML = message; // Add the message
 }
 
 eel.expose(signalCleaningComplete);
@@ -18,7 +13,7 @@ eel.expose(signalCleaningComplete);
  * Fixe l'état de nettoyage comme terminé.
  */
 function signalCleaningComplete() {
-    setCleaningState(CLEANING_STATE_COMPLETE);
+    setCleaningState(STATE_COMPLETE);
 }
 
 eel.expose(colorListElement);

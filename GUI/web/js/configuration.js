@@ -2,6 +2,6 @@
 Handle configuration modifications
 */
 
-const scansList = []
-const selectedScans = []
+var selectedMIDIFile = null
+var selectedOutputDir = null
 var halted = false;

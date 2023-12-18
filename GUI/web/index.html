@@ -3,15 +3,15 @@
     <head>
         <title>Tuttut</title>
         <script>
-            // window.eel = {
+            window.eel = {
             //     does_file_exist: (path) => false,
             //     does_folder_exist: (path) => false,
-            //     ask_files: () => [],
+                ask_files: () => "",
             //     ask_folder: () => "",
             //     open_folder_in_explorer: (path) => {},
             //     import_configuration: () => {},
             //     export_configuration: (configuration) => {}
-            // }
+            }
         </script>
         <script type="text/javascript" src="/eel.js"></script>
         <script type="text/javascript" src="/js/constants.js"></script>
@@ -33,23 +33,31 @@
             <div id="header">
                 <a href="https://github.com/natecdr/tuttut" target="_blank"><img src="img/tuttut.png"/></a>
             </div>
-            <!-- <hr> -->
             <main>
                 <div id="section-main">
-                    <!-- <div class="header noselect">
-                        <h2>
-                            <span>Scans</span>
-                        </h2>
-                    </div> -->
                     <div id="content">
-                        <div id="files-list-header">
-                            <div id="datas-add-buttons">
-                                <button id="select-midi">
-                                    Select a MIDI file
-                                </button>
+                        <div id="select-midi">
+                            <button id="select-midi-button">
+                                Select a MIDI file &#x1F3B5
+                            </button>
+                            <div id="midi-file-path">
+                                No file selected
+                            </div>
+
+                            <button id="select-output-folder-button">
+                                Select an output folder
+                            </button>
+                            <div id="output-folder-path">
+                                No folder selected
                             </div>
                         </div>
-                        <div id="files-list"></div>
+                        <div id="execution">
+                            <button id="execute-button">
+                                Tabify
+                            </button>
+                            <div id="execution-text"></div>
+                        </div>
+                        
                     </div>
                 </div>
             </main>

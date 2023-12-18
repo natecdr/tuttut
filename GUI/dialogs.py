@@ -20,15 +20,15 @@ try:
 except ImportError:
     from tkFileDialog import askopenfilename, askdirectory, askopenfilenames, asksaveasfilename
 
-def ask_files():
+def ask_file():
     """ Demande un ou des fichiers à l'utilisateur """
     root = Tk()
     root.withdraw()
     root.wm_attributes('-topmost', 1)
-    file_paths = askopenfilenames(parent=root)
+    file_path = askopenfilename(parent=root)
     root.update()
 
-    return file_paths if bool(file_paths) else None
+    return file_path if bool(file_path) else None
 
 def ask_folder():
     """ Demande un dossier à l'utilisateur """
