@@ -13,26 +13,23 @@ const setCleaningState = (newState) => {
     switch (newState) {
         case STATE_READY:
             // Clear output
-            outputTextNode.value = 'dd';
+            outputTextNode.value = 'Ready.';
+            cleanButtonNode.style.backgroundColor = "blue";
             // Set the main button back to initial value
             cleanButtonNode.innerHTML = "Tabify";
             return;
         case STATE_WORKING:
             // Disable convert button
+            cleanButtonNode.disabled = true;
             cleanButtonNode.style.backgroundColor = "red";
-            cleanButtonNode.innerHTML = "Interrupt";
-            enableCheckboxes(false);
+            cleanButtonNode.innerHTML = "Working...";
             return;
         case STATE_COMPLETE:
             // Re-enable convert button and re-purpose it
             cleanButtonNode.disabled = false;
-            cleanButtonNode.style.backgroundColor = "#458BC6";
+            cleanButtonNode.style.backgroundColor = "green";
             cleanButtonNode.innerHTML = "Clear output";
-            enableCheckboxes(true);
             return;
-        case STATE_HALTING:
-            cleanButtonNode.disabled = true;
-            cleanButtonNode.innerHTML = "Interrupting...";
     }
 };
 
