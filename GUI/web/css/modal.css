@@ -1,6 +1,5 @@
 :root {
     --modal-offset: 0;
-    --modal-padding: 200px;
     --modal-fallback-color: rgba(0, 0, 0, 0.4);
     --modal-coverage-area: 100%;
 }

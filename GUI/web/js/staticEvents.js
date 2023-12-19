@@ -53,4 +53,5 @@ const setupEvents = () => {
     document.getElementById('select-midi-button').addEventListener('click', selectMIDIFile);
     document.getElementById('select-output-folder-button').addEventListener('click', selectOutputDirectory);
     document.getElementById('execute-button').addEventListener('click', checkAndTabify);
+    document.getElementById('settings-button').addEventListener('click', displayModal);
 };

@@ -24,6 +24,17 @@
     to { -webkit-mask-position: -50%; }
 }
 
+#settings-button {
+    position:absolute;
+    right: 10px;
+    top: 10px;
+}
+
+#settings-button:hover {
+    cursor:pointer;
+    user-select: none;
+}
+
 /* Sections */
 
 div[id*="section"] .header {
@@ -41,7 +52,7 @@ main {
     height: calc(100vh - 50px);
 }
 
-/* Additional Files */
+/* Main Section */
 
 #section-main{
     text-align: center;
@@ -51,11 +62,6 @@ main {
 
 #section-main .content {
     height: 100%;
-    display:flex;
-    flex-direction: column;
-}
-
-#files-list-header {
     display:flex;
     flex-direction: column;
 }
@@ -81,169 +87,7 @@ main {
     margin: 5px 5px 0px 5px;
 }
 
-#files-list {
-    height: fit-content;
-    overflow: auto;
-}
-
-#files-list .input-file label:hover{
-    background-color: #f2f2f2;
-}
-
-#files-list .focused-scan {
-    background-color: #e6e6e6;
-}
-
-.input-file {
-    width: 100%;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-/* Options tab 
-
-#section-advanced {
-    overflow:hidden;
-}
-
-#options-navbar {
-    list-style-type: none;
-    border: 1px solid #458BC6;
-    border-radius: 5px;
-    margin:5px;
-    padding:0;
-    overflow: hidden;
-}   
-
-#options-navbar li {
-    display:inline;
-    float: left;
-    border-right: 1px solid #458BC6;
-}
-
-#options-navbar li a {
-    display:block;
-    padding: 8px 10px;
-    text-decoration: none;
-    color: black;
-}
-
-#options-navbar li a:hover {
-    background-color: #458BC6;
-    cursor:pointer;
-}
-
-.active-opt {
-    background-color: #458BC6;
-}
-*/
-
-/* General options 
-
-#general-options {
-    display:none;
-}
-
-#output-directory {
-    height:50px;
-    display:flex;
-}
-
-#output-directory-button {
-    height: 100%;
-    width: 25%;
-    overflow: hidden;
-    margin: 2px;
-}
-
-#output-directory-textarea {
-    width: 100%;
-    height: 100%;
-    -webkit-box-sizing: border-box; 
-    -moz-box-sizing: border-box;    
-    box-sizing: border-box;
-    resize: none;
-    margin:2px;
-} */
-
-/* Advanced options
-
-#advanced-options {
-    display:none;
-} */
-
-/* Options tabs 
-#options-tab {
-    margin:5px;
-}
-
-#options-tab .active-opt-tab {
-    display:block;
-} */
-
-/* Output 
-
-#advanced-execution-container {
-    display:grid;
-    grid-template-columns: 1fr;
-    grid-template-rows: minmax(0, 1fr) 1fr;
-    height: 100%;
-}
-
-#section-execution {
-    display: flex;
-    flex-direction: column;
-}
-
-#output {
-    height: 100%;
-    display: block;
-    margin:2px;
-}
-
-#output-textarea {
-    width: 100%;
-    height: 100%;
-    -webkit-box-sizing: border-box; 
-    -moz-box-sizing: border-box;    
-    box-sizing: border-box;
-    resize: none;
-} */
-
-/* Package / Open Output Folder Buttons 
-
-#clean-button-wrapper {
-    display: flex;
-    justify-content: space-evenly;
-}
-
-#clean-button {
-    width: 100%;
-    background-color: var(--primary);
-    border: 1px solid var(--primary);
-    font-size: 15px;
-    color: white;
-    height: 38px;
-    margin: 2px;
-    text-align: center;
-    box-sizing: border-box;
-    letter-spacing: .1rem;
-    text-transform: uppercase;
-    white-space: nowrap;
-    transition: background-color 0.3s;
-}
-
-#clean-button:hover {
-    background-color: var(--primary-darker);
-}
-
-#clean-button:disabled {
-    background-color: var(--disabled);
-    border-color: var(--disabled);
-    cursor: not-allowed;
-} */
-
-/* Loading spinner (from https://projects.lukehaas.me/css-loaders/) */
+/* Spinner */
 
 .loading-spinner-wrapper {
     display: flex;
