@@ -22,8 +22,9 @@ const displayModal = (title, description, buttonOptions=['Yes', 'No'], closeEven
         octaveContainer.innerHTML = "";
 
         for (i = 0; i<nStrings; i++) {
+            //Degrees
             const degreeInput = document.createElement("select");
-            degreeInput.addEventListener("change", () => getTuningDegreeInputs());
+            degreeInput.addEventListener("change", () => updateTuningDegreeInputs());
             degreeInput.id = "tuning-degree-opt";
             degreeInput.classList.add("tuning-degree-opt");
             for (var ideg = 0; ideg<degrees.length; ideg++) {
@@ -32,29 +33,33 @@ const displayModal = (title, description, buttonOptions=['Yes', 'No'], closeEven
                 option.text = degrees[ideg];
                 degreeInput.appendChild(option);
             }
+            degreeInput.value = tuningDegrees[i] ? tuningDegrees[i] : "C";
             degreeContainer.appendChild(degreeInput);
 
+            //Octaves
             const octaveInput = document.createElement("input", type="number", min=0, max=9);
-            octaveInput.addEventListener("change", () => getTuningOctaveInputs());
+            octaveInput.addEventListener("change", () => updateTuningOctaveInputs());
             octaveInput.classList.add("tuning-octave-opt");
             octaveInput.type = "number";
             octaveInput.min = 0;
             octaveInput.max = 9;
-            octaveInput.value = 5;
+            octaveInput.value = tuningOctaves[i] || 5;
             octaveContainer.appendChild(octaveInput);
         }
+        updateTuningDegreeInputs()
+        updateTuningOctaveInputs()
     }
 
-    const getTuningDegreeInputs = () => {
+    const updateTuningDegreeInputs = () => {
         degreeSelects = document.getElementsByClassName("tuning-degree-opt");
         degrees = Object.values(degreeSelects);
-        return degrees.map(el => el.value);
+        tuningDegrees = degrees.map(el => el.value);
     }
 
-    const getTuningOctaveInputs = () => {
+    const updateTuningOctaveInputs = () => {
         octaveSelects = document.getElementsByClassName("tuning-octave-opt");
         octaves = Object.values(octaveSelects);
-        return octaves.map(el => el.value);
+        tuningOctaves = octaves.map(el => el.value);
     }
 
     const modalArea = document.getElementById("modal-area");

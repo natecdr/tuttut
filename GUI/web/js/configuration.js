@@ -2,6 +2,9 @@
 Handle configuration modifications
 */
 
-var selectedMIDIFile = null
-var selectedOutputDir = null
-var halted = false;
+var selectedMIDIFile = null;
+var selectedOutputDir = null;
+var halted = false;;
+
+var tuningDegrees = [];
+var tuningOctaves = [];
