@@ -71,17 +71,20 @@
                     <span class="close-btn" id="close-btn">&times;</span>
                     <h2>Settings</h2>
                 </div>
-                <label for="cluster-percentage-opt">Number of strings</label>
-                <input type="number" id="cluster-percentage-opt" name="cluster-percentage-opt" min="1" max="100" value="20">
+                <label for="nstrings-opt">Number of strings</label>
+                <input type="number" id="nstrings-opt" name="nstrings-opt" min="1" max="100" value="6">
                 <br>
-                <label for="max-dist-opt">Tuning</label>
-                <input type="number" id="max-dist-opt" name="max-dist-opt" min="0" max ="5" value="0" step="0.1">
+                <label for="tuning-opt">Tuning</label>
+                <div id="tuning">
+                    <div id="tuning-degree"></div>
+                    <div id="tuning-octave"></div>
+                </div>
                 <br>
-                <label for="voxel-size-opt">Number of frets</label>
-                <input type="number" id="voxel-size-opt" name="voxel-size-opt" min="0.01" max ="0.1" value="0.05" step="0.01">
-                <br>
-                <label for="sensivity-opt">Presets</label>
-                <input type="number" id="sensivity-opt" name="sensivity-opt" min="1" max ="10" value="1">
+                <label for="nfrets-opt">Number of frets</label>
+                <input type="number" id="nfrets-opt" name="nfrets-opt" min="1" max ="100" value="20" step="1">
+                <!-- <br> -->
+                <!-- <label for="sensivity-opt">Presets</label> -->
+                <!-- <input type="select" id="sensivity-opt" name="sensivity-opt" min="1" max ="10" value="1"> -->
                 <br>
             </div>
         </div>

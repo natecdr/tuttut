@@ -62,3 +62,13 @@
 .modal-btn {
   margin-right: 4px;
 }
+
+.modal-content select {
+  margin-right: 4px;
+  width:50px;
+}
+
+.modal-content input {
+  margin-right: 4px;
+  width:50px;
+}

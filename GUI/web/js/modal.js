@@ -12,47 +12,62 @@
 *   - Promise<string>
  */
 const displayModal = (title, description, buttonOptions=['Yes', 'No'], closeEvent='Close') => {
-    const buildBody = (_description) => {
-        const modalBody = document.createElement('div');
-        modalBody.classList.add('modal-section');
+    const buildTuningInputs = (nStrings) => {
+        var degrees = ["C", "D", "E", "F", "G", "A", "B"];
 
-        const descriptionElement = document.createElement('a');
-        descriptionElement.innerText = _description;
-        modalBody.appendChild(descriptionElement);
+        degreeContainer = document.getElementById("tuning-degree");
+        octaveContainer = document.getElementById("tuning-octave");
 
-        return {
-            body: modalBody
+        degreeContainer.innerHTML = "";
+        octaveContainer.innerHTML = "";
+
+        for (i = 0; i<nStrings; i++) {
+            const degreeInput = document.createElement("select");
+            degreeInput.addEventListener("change", () => getTuningDegreeInputs());
+            degreeInput.id = "tuning-degree-opt";
+            degreeInput.classList.add("tuning-degree-opt");
+            for (var ideg = 0; ideg<degrees.length; ideg++) {
+                var option = document.createElement("option");
+                option.value = degrees[ideg];
+                option.text = degrees[ideg];
+                degreeInput.appendChild(option);
+            }
+            degreeContainer.appendChild(degreeInput);
+
+            const octaveInput = document.createElement("input", type="number", min=0, max=9);
+            octaveInput.addEventListener("change", () => getTuningOctaveInputs());
+            octaveInput.classList.add("tuning-octave-opt");
+            octaveInput.type = "number";
+            octaveInput.min = 0;
+            octaveInput.max = 9;
+            octaveInput.value = 5;
+            octaveContainer.appendChild(octaveInput);
         }
     }
 
-    const buildFooter = () => {
-        const footerButtons = [];
-        const footer = document.createElement('div');
-        footer.classList.add('modal-section', 'modal-footer');
+    const getTuningDegreeInputs = () => {
+        degreeSelects = document.getElementsByClassName("tuning-degree-opt");
+        degrees = Object.values(degreeSelects);
+        return degrees.map(el => el.value);
+    }
 
-        for (const label of buttonOptions) {
-            const footerButton = document.createElement('button');
-            footerButton.classList.add('modal-btn');
-            footerButton.innerText = label;
-            footer.appendChild(footerButton);
-            footerButtons.push(footerButton);
-        }
-
-        return {
-            footer: footer,
-            footerButtons: footerButtons
-        }
+    const getTuningOctaveInputs = () => {
+        octaveSelects = document.getElementsByClassName("tuning-octave-opt");
+        octaves = Object.values(octaveSelects);
+        return octaves.map(el => el.value);
     }
 
     const modalArea = document.getElementById("modal-area");
     modalArea.classList.remove('modal-coverage-hidden');
 
-    closeButton = document.getElementById("close-btn")
+    const closeButton = document.getElementById("close-btn")
+    const nStringsOpt = document.getElementById("nstrings-opt")
 
+    buildTuningInputs(nStringsOpt.value);
+    nStringsOpt.addEventListener("change", () => buildTuningInputs(nStringsOpt.value))
 
     const clearEventListeners = () => {
         closeButton.removeEventListener('click', (_) => {});
-        // footerButtons.forEach((button) => button.removeEventListener('click', (_) => {}));
     };
 
     return new Promise((resolve) => {
@@ -61,14 +76,5 @@ const displayModal = (title, description, buttonOptions=['Yes', 'No'], closeEven
             modalArea.classList.add('modal-coverage-hidden');
             resolve(closeEvent);
         });
-
-        // for (const [label, button] of zip(buttonOptions, footerButtons)) {
-        //     button.addEventListener('click', (_) => {
-        //         clearEventListeners();
-        //         modalArea.removeChild(modalContent);
-        //         modalArea.classList.add('modal-coverage-hidden');
-        //         resolve(label);
-        //     });
-        // }
     })
 };
