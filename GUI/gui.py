@@ -60,7 +60,7 @@ def get_files_in_folder(path):
     return paths
 
 @eel.expose
-def tabify(path, output_folder):
+def tabify(path, output_folder, parameters):
     """Lance le nettoyage.
 
     Args:
@@ -68,7 +68,7 @@ def tabify(path, output_folder):
         output_folder (str): Chemin du dossier de sortie
         preset (Dict): Paramètres de nettoyage
     """
-    generate.tabify(path, output_folder)
+    generate.tabify(path, output_folder, parameters)
 
     print_ui('Complete.\n')
     eel.signalCleaningComplete(True)()

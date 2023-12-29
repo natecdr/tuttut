@@ -14,7 +14,7 @@ from GUI import gui
 from tuttut.tab import Tab
 from tuttut.theory import Tuning
 
-def tabify(midi_path, output_dir): 
+def tabify(midi_path, output_dir, parameters): 
     """Nettoie de A à Z un scan.
 
     Args:
@@ -27,7 +27,10 @@ def tabify(midi_path, output_dir):
 
     filepath = Path(midi_path)
     f = pretty_midi.PrettyMIDI(filepath.as_posix())
-    tab = Tab(filepath.stem, Tuning(), f, weights=weights, output_dir = output_dir)
-    # tab = Tab(file.stem, Tuning([Note(69), Note(64), Note(60), Note(67)]), f, weights=weights)
+    
+    strings = [degree + str(octave) for degree, octave in zip(parameters["degrees"], parameters["octaves"])]
+    tuning = Tuning(strings)
+    
+    tab = Tab(filepath.stem, tuning, f, weights=weights, output_dir = output_dir)
     tab.to_ascii()
     tab.to_json()

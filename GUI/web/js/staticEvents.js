@@ -36,7 +36,7 @@ const selectOutputDirectory = async (event) => {
  */
 const checkAndTabify = async (event) => {
     if (cleaningState === STATE_COMPLETE) { // This is now the clear output button
-        setCleaningState(STATE_READY);
+        setProcessingState(STATE_READY);
         putMessageInOutput("");
         return;
     }

@@ -4,7 +4,7 @@ let cleaningState = STATE_READY;
  * Met à jour l'interface selon l'état courant du nettoyage.
  * @param {String} newState Nouvel état du nettoyage
  */
-const setCleaningState = (newState) => {
+const setProcessingState = (newState) => {
     cleaningState = newState;
 
     const outputTextNode = document.getElementById('execution-text');
@@ -38,7 +38,14 @@ const setCleaningState = (newState) => {
  * @param {String} output_folder Chemin du dossier de sortie
  */
 const tabify = async () => {
-    setCleaningState(STATE_WORKING);
-    // var preset = getPreset()
-    await eel.tabify(selectedMIDIFile, selectedOutputDir)();
+    setProcessingState(STATE_WORKING);
+
+    const parameters = {
+        nStrings : document.getElementById("nstrings-opt").value,
+        degrees : tuningDegrees,
+        octaves : tuningOctaves,
+        nFrets : document.getElementById("nfrets-opt").value
+    }
+
+    await eel.tabify(selectedMIDIFile, selectedOutputDir, parameters)();
 };

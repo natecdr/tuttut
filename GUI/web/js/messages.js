@@ -13,5 +13,5 @@ eel.expose(signalCleaningComplete);
  * Fixe l'état de nettoyage comme terminé.
  */
 function signalCleaningComplete() {
-    setCleaningState(STATE_COMPLETE);
+    setProcessingState(STATE_COMPLETE);
 }

@@ -1,7 +1,7 @@
 from enum import Enum
 import numpy as np
 import tuttut.midi_utils as midi_utils
-from pretty_midi import note_number_to_name
+from pretty_midi import note_number_to_name, note_name_to_number
 from collections import defaultdict
 
 class Note:
@@ -51,8 +51,8 @@ class Degree(Enum): #Degree of a note enum
 
 class Tuning:
   """Tuning object."""
-  standard_tuning = [Note(64), Note(59), Note(55), Note(50), Note(45), Note(40)]
-  standard_ukulele_tuning = [Note(69), Note(64), Note(60), Note(67)]
+  standard_tuning = ["E4", "B3", "G3", "D3", "A2", "E2"]
+  standard_ukulele_tuning = ["A4", "E4", "C4", "G4"]
 
   def __init__(self, strings = standard_tuning):
     """Constructor for the Tuning object.
@@ -60,7 +60,7 @@ class Tuning:
     Args:
         strings (list, optional): List of notes corresponding to the string notes. Defaults to standard_tuning.
     """
-    self._strings = np.array(strings)
+    self._strings = np.array([Note(note_name_to_number(note)) for note in strings]) #Thin to thick
     self.nstrings = len(strings)
     self.nfrets = 20
 
