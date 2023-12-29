@@ -97,7 +97,7 @@ class TestGraphUtils(unittest.TestCase):
         pass
     
     def test_fix_impossible_notes(self):
-        fretboard = Fretboard(Tuning([Note(30), Note(40)]))
+        fretboard = Fretboard(Tuning(["F#1", "E2"]))
         fretboard.tuning.nfrets = 10
         #Tuning bounds : 30 - 50
         

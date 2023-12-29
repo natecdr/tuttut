@@ -1,0 +1,20 @@
+{
+    "normal" :  {
+        "percentage": 20,
+        "max_dist": 0,
+        "voxel_size": 0.05,
+        "S":1
+    },
+    "agressive" : {
+        "percentage": 20,
+        "max_dist": 1,
+        "voxel_size": 0.05,
+        "S":3
+    },
+    "fast" : {
+        "percentage": 20,
+        "max_dist": 0,
+        "voxel_size": 0.1,
+        "S":1
+    }
+}

@@ -1,0 +1,85 @@
+@font-face {
+    font-family: 'Nunito';
+    src: url('../Nunito-Light.ttf');
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html, body {
+    overflow: hidden;
+}
+
+:root {
+    --background: white;
+    --primary: black;
+    --primary-darker: #020089;
+    --primary-transparent: #1c79c71a;
+    --error: red;
+    --disabled: #808080;
+
+    --title: #666666;
+    --warning-background: #fff3cd;
+    --warning-border: #a0987c;
+
+    --border-radius: 4px;
+}
+
+body {
+    background-color: var(--background);
+    font-family: 'Nunito', Helvetica, Arial, sans-serif;
+    font-weight: 100;
+}
+
+.mid { /* Global center alignment */
+    margin: auto;
+    height: 100%;
+}
+
+/* Headers */
+
+h2 {
+    font-weight: normal;
+    font-size: 20px;
+}
+
+h3 {
+    font-size: 17px;
+    margin: 10px 0 4px 0;
+}
+
+/* Generic inputs */
+
+button, input, select {
+    border: 1px solid var(--primary);
+    border-radius: var(--border-radius);
+    padding: 4px;
+
+    font-family: 'Nunito', Helvetica, Arial, sans-serif;
+    font-weight: 100;
+}
+
+button {
+    cursor: pointer;
+    /* background: transparent; */
+    padding: 3px 8px;
+    transition: border 0.3s, background 0.3s;
+    border: 1px solid;
+    border-radius: var(--border-radius);
+}
+
+button:hover { /* Apply hovers to non-state buttons */
+    background: var(--primary-transparent);
+}
+
+/* Utils */
+
+.noselect { /* Don't select tab text */
+    -webkit-touch-callout: none; /* iOS Safari */
+    -webkit-user-select: none; /* Safari */
+    -khtml-user-select: none; /* Konqueror HTML */
+    -moz-user-select: none; /* Firefox */
+    -ms-user-select: none; /* Internet Explorer/Edge */
+    user-select: none;
+}
