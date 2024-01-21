@@ -63,7 +63,7 @@
   margin-right: 4px;
 }
 
-.modal-content select {
+.tuning select {
   margin-right: 4px;
   width:50px;
 }
@@ -71,4 +71,8 @@
 .modal-content input {
   margin-right: 4px;
   width:50px;
+}
+
+.preset select {
+  width:100px;
 }

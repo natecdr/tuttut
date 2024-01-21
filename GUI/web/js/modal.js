@@ -11,7 +11,7 @@
 * Returns:
 *   - Promise<string>
  */
-const displayModal = (title, description, buttonOptions=['Yes', 'No'], closeEvent='Close') => {
+const displayModal = (title, closeEvent='Close') => {
     const buildTuningInputs = (nStrings) => {
         var degrees = ["C", "D", "E", "F", "G", "A", "B"];
 
@@ -62,6 +62,37 @@ const displayModal = (title, description, buttonOptions=['Yes', 'No'], closeEven
         tuningOctaves = octaves.map(el => el.value);
     }
 
+    const updatePreset = () => {
+        selectedPreset = document.getElementById("preset-opt").value
+        tuningDegrees = presets[selectedPreset].degrees;
+        tuningOctaves = presets[selectedPreset].octaves;
+        buildTuningInputs(tuningDegrees.length);
+
+        console.log(tuningDegrees)
+
+        const nStringsOpt = document.getElementById("nstrings-opt")
+        nStringsOpt.value = tuningDegrees.length;
+    }
+
+    const buildPresets = () => {
+        presetContainer = document.getElementById("preset");
+        presetContainer.innerHTML = "";
+        const presetInput = document.createElement("select")
+        presetInput.id = "preset-opt";
+
+        for (const [preset_name, value] of Object.entries(presets)) {
+            presetInput.addEventListener("change", () => updatePreset(preset_name));
+
+            var option = document.createElement("option");
+            option.value = preset_name;
+            option.text = preset_name;
+            presetInput.appendChild(option);
+        }
+
+        presetInput.value = selectedPreset;
+        presetContainer.appendChild(presetInput);
+    }
+
     const modalArea = document.getElementById("modal-area");
     modalArea.classList.remove('modal-coverage-hidden');
 
@@ -70,6 +101,8 @@ const displayModal = (title, description, buttonOptions=['Yes', 'No'], closeEven
 
     buildTuningInputs(nStringsOpt.value);
     nStringsOpt.addEventListener("change", () => buildTuningInputs(nStringsOpt.value))
+
+    buildPresets();
 
     const clearEventListeners = () => {
         closeButton.removeEventListener('click', (_) => {});
