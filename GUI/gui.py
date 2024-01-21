@@ -71,7 +71,7 @@ def tabify(path, output_folder, parameters):
     generate.tabify(path, output_folder, parameters)
 
     print_ui('Complete.\n')
-    eel.signalCleaningComplete(True)()
+    eel.signalProcessingComplete(True)()
 
 def print_ui(message):
     """ Ecrit un message dans la console. """

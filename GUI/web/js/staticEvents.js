@@ -14,6 +14,8 @@ const selectMIDIFile = async (event) => {
         midiNameNode.innerHTML = filePath
         selectedMIDIFile = filePath
     }
+
+    checkConfigurationComplete();
 };
 
 /**
@@ -28,6 +30,8 @@ const selectOutputDirectory = async (event) => {
         outputDirNode.innerHTML = dirPath
         selectedOutputDir = dirPath
     }
+
+    checkConfigurationComplete();
 }
 
 /**
@@ -50,6 +54,8 @@ const checkAndTabify = async (event) => {
  */
 const setupEvents = () => {
     // Additional files
+    setProcessingState(STATE_NOT_READY);
+
     document.getElementById('select-midi-button').addEventListener('click', selectMIDIFile);
     document.getElementById('select-output-folder-button').addEventListener('click', selectOutputDirectory);
     document.getElementById('execute-button').addEventListener('click', checkAndTabify);

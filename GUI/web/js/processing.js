@@ -1,4 +1,4 @@
-let cleaningState = STATE_READY;
+let cleaningState = STATE_NOT_READY;
 
 /**
  * Met à jour l'interface selon l'état courant du nettoyage.
@@ -11,8 +11,14 @@ const setProcessingState = (newState) => {
     const cleanButtonNode = document.getElementById('execute-button');
 
     switch (newState) {
+        case STATE_NOT_READY:
+            cleanButtonNode.disabled = true;
+            cleanButtonNode.style.backgroundColor = "grey";
+            cleanButtonNode.innerHTML = "Please select files";
+            return;
         case STATE_READY:
             // Clear output
+            cleanButtonNode.disabled = false;
             outputTextNode.value = 'Ready.';
             cleanButtonNode.style.backgroundColor = "blue";
             // Set the main button back to initial value
@@ -33,6 +39,12 @@ const setProcessingState = (newState) => {
     }
 };
 
+const checkConfigurationComplete = () => {
+    if ((selectedMIDIFile !== null) && (selectedOutputDir !== null)) {
+        setProcessingState(STATE_READY);
+    }
+}
+ 
 /**
  * Lance le nettoyage avec les bons paramètres.
  * @param {String} output_folder Chemin du dossier de sortie

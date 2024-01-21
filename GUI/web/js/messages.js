@@ -8,10 +8,10 @@ function putMessageInOutput(message) {
     outputNode.innerHTML = message; // Add the message
 }
 
-eel.expose(signalCleaningComplete);
+eel.expose(signalProcessingComplete);
 /**
  * Fixe l'état de nettoyage comme terminé.
  */
-function signalCleaningComplete() {
+function signalProcessingComplete() {
     setProcessingState(STATE_COMPLETE);
 }
