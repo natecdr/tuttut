@@ -6,13 +6,18 @@ It can handle any tuning for any number of strings, and will do the arrangement 
 
 ## Using the tool
 
+<p align="center">
+	<img src="https://i.ibb.co/L8JKc35/Screenshot-from-2024-01-22-16-09-27.png" alt="Tuttut" height="200" border="0"/>
+</p>
+
 First, clone the repo.
 
 Then, place your midi files in the *midis* folder.
 
-To convert the midis to tabs, make sure the repo is the working directory and use the command : `python midi_tabs.py yourmidifile.mid` in the terminal.
+Select the MIDI file you wish to convert.
+Select the folder in which the tab will be exported.
 
-You should find the generated tabs in the *tabs* folder.
+Done!
 
 ## Expected results
 
@@ -30,9 +35,11 @@ E ||--------------------|1------------------|1-------------------|3-------------
  This is the generated tab for a twinkle twinkle little star midi.
  
 ## Limitations
-The generated tabs are often different from how a human would play.
+The algorithm tries to approximate as well as possible the way a human would arrange and play pieces. However, it may sometimes not be perfect and the final tab may need some tweaking.
 
-Also, the tool can't handle complicated multi-channel MIDI files, but it's not what it's made for.
+The tool can't handle complicated multi-channel MIDI files, but it's not what it's made for.
+
+Slides, Hammer-on, Pull-offs and other advanced techniques are not modeled.
 
 # Behind the tool
 
