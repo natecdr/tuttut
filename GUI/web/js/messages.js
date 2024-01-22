@@ -1,6 +1,6 @@
 eel.expose(putMessageInOutput);
 /**
- * Ecrit un message dans la console.
+ * Writes a messages in the output
  * @param {String} message 
  */
 function putMessageInOutput(message) {
@@ -10,7 +10,7 @@ function putMessageInOutput(message) {
 
 eel.expose(signalProcessingComplete);
 /**
- * Fixe l'état de nettoyage comme terminé.
+ * Sets the processing as complete
  */
 function signalProcessingComplete() {
     setProcessingState(STATE_COMPLETE);

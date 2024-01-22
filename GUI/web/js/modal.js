@@ -3,15 +3,12 @@
 * Returns selected option from **buttonOptions** list.
 *
 * Input:
-*   - title: string
-*   - description: string
-*   - [optional] buttonOptions: string[] = ['Yes', 'No']
 *   - [optional]: closeEvent: string = 'Close'
 *
 * Returns:
 *   - Promise<string>
  */
-const displayModal = (title, closeEvent='Close') => {
+const displayModal = (closeEvent='Close') => {
     const buildTuningInputs = (nStrings) => {
         var degrees = ["C", "D", "E", "F", "G", "A", "B"];
 

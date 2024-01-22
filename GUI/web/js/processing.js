@@ -1,8 +1,8 @@
 let cleaningState = STATE_NOT_READY;
 
 /**
- * Met à jour l'interface selon l'état courant du nettoyage.
- * @param {String} newState Nouvel état du nettoyage
+ * Updates the interface according to the new processing state
+ * @param {String} newState New processing state
  */
 const setProcessingState = (newState) => {
     cleaningState = newState;
@@ -39,6 +39,9 @@ const setProcessingState = (newState) => {
     }
 };
 
+/**
+ * Checks that the input MIDI and output folder have been set
+ */
 const checkConfigurationComplete = () => {
     if ((selectedMIDIFile !== null) && (selectedOutputDir !== null)) {
         setProcessingState(STATE_READY);
@@ -46,8 +49,7 @@ const checkConfigurationComplete = () => {
 }
  
 /**
- * Lance le nettoyage avec les bons paramètres.
- * @param {String} output_folder Chemin du dossier de sortie
+ * Launches the processing
  */
 const tabify = async () => {
     setProcessingState(STATE_WORKING);

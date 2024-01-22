@@ -3,7 +3,7 @@ Handle the initialisation of the ui
 */
 
 /**
- * Initialise l'interface au chargement de la page.
+ * Initializes the ui
  */
 window.addEventListener("load", async () => {
     await eel.initialise()();

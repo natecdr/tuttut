@@ -19,7 +19,7 @@ const selectMIDIFile = async (event) => {
 };
 
 /**
- * Demande à l'utilisateur un dossier de sortie.
+ * Asks the user for an output directory
  * @param {Event} event 
  */
 const selectOutputDirectory = async (event) => {
@@ -35,7 +35,7 @@ const selectOutputDirectory = async (event) => {
 }
 
 /**
- * Fait des vérifications avant de lancer le nettoyage.
+ * Checks stuff befor tabifying
  * @param {Event} event 
  */
 const checkAndTabify = async (event) => {
@@ -50,7 +50,7 @@ const checkAndTabify = async (event) => {
 };
 
 /**
- * Initialise les evènements liés à des actions.
+ * Initializes events linked to user actions
  */
 const setupEvents = () => {
     // Additional files

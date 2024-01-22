@@ -6,8 +6,6 @@ from pathlib import Path
 sys.path.append("./..")
 
 import os
-import shutil
-import traceback
 
 from GUI import gui
 
