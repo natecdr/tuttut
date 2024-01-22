@@ -1,8 +1,8 @@
 <p align="center">
 	<img src="https://i.ibb.co/FYPcVrK/tuttut.png" alt="Tuttut" height="200" border="0"/>
 </p>
-Converts MIDI files to guitar tabs.  
-It can handle any tuning and any number of strings, and will do the arrangement accordingly.
+Converts MIDI files to guitar tabs.<br />
+It can handle any tuning for any number of strings, and will do the arrangement accordingly.
 
 ## Using the tool
 
