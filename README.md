@@ -20,7 +20,8 @@ Press Tabify.
 
 Done!
 
-You can change the tuning in the settings (Top right corner gear icon), there are even presets for common instruments.
+You can change the tuning in the settings (Top right corner gear icon), there are even presets for common instruments. <br />
+Also, disclaimer : The tool works best for single-channel, single-instrument MIDI files, it might spit out some janky stuff if you throw multi-channel complicated files at it.
 
 ## Expected results
 
