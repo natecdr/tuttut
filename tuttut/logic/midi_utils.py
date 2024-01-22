@@ -1,5 +1,5 @@
 import pretty_midi
-import tuttut.theory as theory
+import tuttut.logic.theory as theory
 # from app.graph_utils import 
 
 def measure_length_ticks(midi, time_signature): 

@@ -4,7 +4,7 @@ from pathlib import Path
 
 import eel
 
-from GUI import config, gui_utils, dialogs, generate
+from tuttut.GUI import config, gui_utils, dialogs, generate
 
 class UIOpenMode:
     NONE = 0

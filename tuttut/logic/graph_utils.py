@@ -4,7 +4,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import itertools
 
-from tuttut.theory import *
+from tuttut.logic.theory import *
 
 def build_path_graph(G, note_arrays):
   """Returns a path graph corresponding to all possible notes of a chord.

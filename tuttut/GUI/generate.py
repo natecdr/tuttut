@@ -7,10 +7,8 @@ sys.path.append("./..")
 
 import os
 
-from GUI import gui
-
-from tuttut.tab import Tab
-from tuttut.theory import Tuning
+from tuttut.logic.tab import Tab
+from tuttut.logic.theory import Tuning
 
 def tabify(midi_path, output_dir, parameters): 
     """Nettoie de A à Z un scan.

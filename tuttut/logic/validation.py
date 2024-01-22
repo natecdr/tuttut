@@ -1,4 +1,4 @@
-from tuttut.midi_utils import *
+from logic.midi_utils import *
 import numpy as np
 import math
 

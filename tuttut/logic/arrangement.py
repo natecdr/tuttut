@@ -1,5 +1,5 @@
-from tuttut.midi_utils import *
-from tuttut.theory import Note
+from logic.midi_utils import *
+from logic.theory import Note
 
 class Arrangement():
     def __init__(self, notes, tuning):

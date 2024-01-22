@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "tuttut"
-version = "0.0.1"
+version = "0.0.5"
 authors = [
   { name="Nathan Candre", email="nathan.candre@gmail.com" },
 ]
@@ -28,4 +28,4 @@ Homepage = "https://github.com/natecdr/tuttut"
 Issues = "https://github.com/natecdr/tuttut/issues"
 
 [project.gui-scripts]
-tuttut = "tuttut:gui"
+tuttut = "tuttut.midi_tabs_gui:run"

@@ -1,6 +1,6 @@
 from enum import Enum
 import numpy as np
-import tuttut.midi_utils as midi_utils
+import tuttut.logic.midi_utils as midi_utils
 from pretty_midi import note_number_to_name, note_name_to_number
 from collections import defaultdict
 

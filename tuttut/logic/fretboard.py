@@ -1,9 +1,9 @@
 import traceback
 import numpy as np
 from pretty_midi.containers import TimeSignature
-from tuttut.theory import Measure, Note
-from tuttut.midi_utils import *
-from tuttut.graph_utils import *
+from tuttut.logic.theory import Measure, Note
+from tuttut.logic.midi_utils import *
+from tuttut.logic.graph_utils import *
 import networkx as nx
 import json
 import os

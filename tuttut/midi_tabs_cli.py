@@ -1,6 +1,6 @@
 import pretty_midi
-from tuttut.tab import Tab
-from tuttut.theory import Tuning
+from tuttut.logic.tab import Tab
+from tuttut.logic.theory import Tuning
 import argparse
 import traceback
 from time import time
