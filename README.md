@@ -10,14 +10,17 @@ It can handle any tuning for any number of strings, and will do the arrangement 
 	<img src="https://i.ibb.co/L8JKc35/Screenshot-from-2024-01-22-16-09-27.png" alt="Tuttut" height="200" border="0"/>
 </p>
 
-First, clone the repo.
+Install the repo with ```pip install tuttut```
 
-Then, place your midi files in the *midis* folder.
+To run it, execute the command ```tuttut```
 
 Select the MIDI file you wish to convert.
 Select the folder in which the tab will be exported.
+Press Tabify.
 
 Done!
+
+You can change the tuning in the settings (Top right corner gear icon), there are even presets for common instruments.
 
 ## Expected results
 
