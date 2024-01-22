@@ -150,11 +150,15 @@ def get_n_changed_strings(G, path, previous_path, tuning):
   Returns:
       int: Number of changed strings
   """
+  # used_strings = set([G.nodes[note]["pos"][0] for note in path])
+  # previous_used_strings = set([G.nodes[note]["pos"][0] for note in previous_path])
+  
   used_strings = set([G.nodes[note]["pos"][0] for note in path])
-  previous_used_strings = set([G.nodes[note]["pos"][0] for note in previous_path])
-
+  previous_used_strings = set([G.nodes[note]["pos"][0] for note in previous_path if G.nodes[note]["pos"][1] != 0]) #Does not take into account open strings
+  
   n_changed_strings = len(path) - len(set(used_strings).intersection(previous_used_strings))
   
+
   n_changed_strings_score = n_changed_strings/tuning.nstrings
   assert 0 <= n_changed_strings_score <= 1
   return n_changed_strings_score

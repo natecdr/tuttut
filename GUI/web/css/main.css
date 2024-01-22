@@ -1,0 +1,149 @@
+/* Header */
+#header {
+    text-align: center;
+    line-height: 0;
+    border-bottom: 2px solid var(--primary);
+} 
+
+#header img {
+    display:inline-block;
+    height: 50px;
+    -webkit-user-drag: none;
+    user-select: none;
+}
+
+#header img:hover {
+    -webkit-mask-image: linear-gradient(-75deg, rgb(0, 0, 0) 30%, rgba(0, 0, 0, 0.50) 50%, rgb(0, 0, 0) 70%);
+    -webkit-mask-size: 200%;
+    animation: shine 2s;
+    animation-fill-mode: forwards;
+}
+
+@-webkit-keyframes shine {
+    from { -webkit-mask-position: 150%; }
+    to { -webkit-mask-position: -50%; }
+}
+
+#settings-button {
+    position:absolute;
+    right: 10px;
+    top: 10px;
+}
+
+#settings-button:hover {
+    cursor:pointer;
+    user-select: none;
+}
+
+/* Sections */
+
+div[id*="section"] .header {
+    display: flex;
+}
+
+div[id*="section"] .header h2 {
+    display: inline;
+    margin: 0 0 0 15px;
+}
+
+/* Main layout */
+main {
+    display:grid;
+    height: calc(100vh - 50px);
+}
+
+/* Main Section */
+
+#section-main{
+    text-align: center;
+    max-height: 100%;
+    overflow:auto;
+}
+
+#section-main .content {
+    height: 100%;
+    display:flex;
+    flex-direction: column;
+}
+
+#select-midi {
+    display: grid;
+    border-bottom: 2px solid var(--primary);
+}
+
+#select-midi button {
+    margin: 5px 5px 0px 5px;
+}
+
+#midi-file-path {
+    margin: 5px 5px 5px 0px;
+}
+
+#output-folder-path {
+    margin: 5px 5px 5px 0px;
+}
+
+#execution {
+    margin: 5px 5px 0px 5px;
+}
+
+/* Spinner */
+
+.loading-spinner-wrapper {
+    display: flex;
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100vh;
+    align-items: center;
+    justify-content: center;
+    background: rgb(0 0 0 / 75%);
+}
+
+.loading-label {
+    color: white;
+}
+
+.loading-spinner,
+.loading-spinner:after {
+  border-radius: 50%;
+  width: 8em;
+  height: 8em;
+}
+.loading-spinner {
+  margin: 60px auto;
+  font-size: 10px;
+  position: relative;
+  text-indent: -9999em;
+  border-top: 1.1em solid rgba(256,256,256, 0.2);
+  border-right: 1.1em solid rgba(256,256,256, 0.2);
+  border-bottom: 1.1em solid rgba(256,256,256, 0.2);
+  border-left: 1.1em solid #FFFFFF;
+  -webkit-transform: translateZ(0);
+  -ms-transform: translateZ(0);
+  transform: translateZ(0);
+  -webkit-animation: load8 1.1s infinite linear;
+  animation: load8 1.1s infinite linear;
+}
+@-webkit-keyframes load8 {
+  0% {
+    -webkit-transform: rotate(0deg);
+    transform: rotate(0deg);
+  }
+  100% {
+    -webkit-transform: rotate(360deg);
+    transform: rotate(360deg);
+  }
+}
+@keyframes load8 {
+  0% {
+    -webkit-transform: rotate(0deg);
+    transform: rotate(0deg);
+  }
+  100% {
+    -webkit-transform: rotate(360deg);
+    transform: rotate(360deg);
+  }
+}
+

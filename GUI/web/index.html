@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Tuttut</title>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+        <script type="text/javascript" src="/eel.js"></script>
+        <script type="text/javascript" src="/js/constants.js"></script>
+        <script type="text/javascript" src="/js/initialise.js"></script>
+        <script type="text/javascript" src="/js/configuration.js"></script>
+        <script type="text/javascript" src="/js/staticEvents.js"></script>
+        <script type="text/javascript" src="/js/interface.js"></script>
+        <script type="text/javascript" src="/js/utils.js"></script>
+        <script type="text/javascript" src="/js/modal.js"></script>
+        <script type="text/javascript" src="/js/messages.js"></script>
+        <script type="text/javascript" src="/js/processing.js"></script>
+        <link rel="stylesheet" href="/css/general.css">
+        <link rel="stylesheet" href="/css/main.css">
+        <link rel="stylesheet" href="/css/modal.css">
+    </head>
+
+    <body>
+        <div class="main">
+            <div id="header">
+                <a href="https://github.com/natecdr/tuttut" target="_blank"><img src="img/tuttut.png"/></a>
+                <i class="material-icons" id="settings-button">settings</i>
+            </div>
+            <main>
+                <div id="section-main">
+                    <div id="content">
+                        <div id="select-midi">
+                            <button id="select-midi-button">
+                                Select a MIDI file &#x1F3B5
+                            </button>
+                            <div id="midi-file-path">
+                                No file selected
+                            </div>
+
+                            <button id="select-output-folder-button">
+                                Select an output folder
+                            </button>
+                            <div id="output-folder-path">
+                                No folder selected
+                            </div>
+                        </div>
+                        <div id="execution">
+                            <button id="execute-button">
+                                Tabify
+                            </button>
+                            <div id="execution-text"></div>
+                        </div>
+                        
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <div id="modal-area" class="modal-coverage modal-coverage-hidden">
+            <div id="modal-content" class="modal-content">
+                <div id="modal-header" class="modal-header">
+                    <span class="close-btn" id="close-btn">&times;</span>
+                    <h2>Settings</h2>
+                </div>
+                <label for="nstrings-opt">Number of strings</label>
+                <input type="number" id="nstrings-opt" name="nstrings-opt" min="1" max="100" value="6">
+                <br>
+                <label for="tuning">Tuning</label>
+                <div id="tuning" class="tuning">
+                    <div id="tuning-degree"></div>
+                    <div id="tuning-octave"></div>
+                </div>
+                <br>
+                <label for="nfrets-opt">Number of frets</label>
+                <input type="number" id="nfrets-opt" name="nfrets-opt" min="1" max ="100" value="20" step="1">
+                <br>
+                <label for="preset-opt">Preset</label>
+                <div id="preset" class="preset"></div>
+                <br>
+            </div>
+        </div>
+
+        <div id="spinner-root" class="loading-spinner-wrapper">
+            <div>
+                <div class="loading-spinner"></div>
+                <span class="loading-label">Initialisation...</span>
+            </div>
+        </div>
+    </body>
+</html>
