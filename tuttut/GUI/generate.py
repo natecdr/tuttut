@@ -29,4 +29,3 @@ def tabify(midi_path, output_dir, parameters):
     
     tab = Tab(filepath.stem, tuning, f, weights=weights, output_dir = output_dir)
     tab.to_ascii()
-    tab.to_json()

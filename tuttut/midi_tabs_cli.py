@@ -31,7 +31,6 @@ if __name__ == "__main__":
     tab = Tab(file.stem, Tuning(), f, weights=weights)
     # tab = Tab(file.stem, Tuning([Note(69), Note(64), Note(60), Note(67)]), f, weights=weights)
     tab.to_ascii()
-    tab.to_json()
     print("Time :", time() - start)
 
   except Exception as e:
