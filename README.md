@@ -37,6 +37,8 @@ E ||--------------------|1------------------|1-------------------|3-------------
 
 ```
  This is the generated tab for a twinkle twinkle little star midi.
+
+ I open my tabs in VScode, but if you don't have that you can open it with chrome, right click anywhere and click "View Page Source", which will show you a readable version.
  
 ## Limitations
 The algorithm tries to approximate as well as possible the way a human would arrange and play pieces. However, it may sometimes not be perfect and the final tab may need some tweaking.
