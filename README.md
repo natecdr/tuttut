@@ -23,6 +23,15 @@ Done!
 You can change the tuning in the settings (Top right corner gear icon), there are even presets for common instruments. <br />
 Also, disclaimer : The tool works best for single-channel, single-instrument MIDI files, it might spit out some janky stuff if you throw multi-channel complicated files at it.
 
+### How to run using CLI (no GUI)
+
+If file selector does not work properly for you on macOS, try CLI:
+1. Create `./midis` and `./tabs` folders.
+2. Put your MIDI file to `./midis/masterpiece.mid`.
+3. Run `uv run --with pretty_midi --with tuttut -- python -m tuttut.midi_tabs_cli masterpiece` (MIDI file goes without an extension in CLI). [`uv` Python package manager](https://docs.astral.sh/uv/getting-started/installation/) has to be installed.
+
+As a result, you will get `./tabs/masterpiece.txt`.
+
 ## Expected results
 
 This is the kind of result you are expecting to get :
