@@ -34,7 +34,7 @@ const displayModal = (closeEvent='Close') => {
             degreeContainer.appendChild(degreeInput);
 
             //Octaves
-            const octaveInput = document.createElement("input", type="number", min=0, max=9);
+            const octaveInput = document.createElement("input");
             octaveInput.addEventListener("change", () => updateTuningOctaveInputs());
             octaveInput.classList.add("tuning-octave-opt");
             octaveInput.type = "number";
@@ -77,7 +77,7 @@ const displayModal = (closeEvent='Close') => {
         const presetInput = document.createElement("select")
         presetInput.id = "preset-opt";
 
-        for (const [preset_name, value] of Object.entries(presets)) {
+        for (const [preset_name] of Object.entries(presets)) {
             presetInput.addEventListener("change", () => updatePreset(preset_name));
 
             var option = document.createElement("option");
