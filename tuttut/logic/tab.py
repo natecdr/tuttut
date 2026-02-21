@@ -1,15 +1,15 @@
-import traceback
+import math
 import numpy as np
+import json
+import os
+from collections import defaultdict
+from pathlib import Path
 from pretty_midi.containers import TimeSignature
 from tuttut.logic.theory import Measure, Note
 from tuttut.logic.fretboard import Fretboard
-from tuttut.logic.midi_utils import *
-from tuttut.logic.graph_utils import *
-import networkx as nx
-import json
-import os
-from pathlib import Path
-from time import time
+from tuttut.logic.midi_utils import measure_length_ticks, get_non_drum, fill_measure_str
+from tuttut.logic.difficulty import compute_isolated_path_difficulty
+from tuttut.logic.graph_utils import difficulties_to_probabilities, expand_emission_matrix, build_transition_matrix, viterbi
 
 class Tab:
   """Tab object."""
@@ -21,8 +21,6 @@ class Tab:
         tuning (Tuning): Tuning of the instrument for the tab
         midi (pretty_midi.PrettyMIDI): The MIDI we're trying to convert to tab
     """
-    # quantize(midi)
-    
     self.name = name
     self.tuning = tuning
     self.time_signatures = midi.time_signature_changes if len(midi.time_signature_changes) > 0 else [TimeSignature(4, 4, 0)]
@@ -82,85 +80,95 @@ class Tab:
 
   def gen_tab(self):
     """Generates the tab data and the fingerings."""
-    
-    tab = {}
-    
-    tab["tuning"] = [string.pitch for string in self.tuning.strings]
-    
-    tab["measures"] = []
+    tab = {"tuning": [string.pitch for string in self.tuning.strings], "measures": []}
 
+    notes_vocabulary, notes_sequence, fingerings_vocabulary, emission_matrix, initial_probabilities = (
+        self._build_hmm_inputs(tab)
+    )
+
+    final_sequence = self._run_viterbi(
+        notes_sequence, fingerings_vocabulary, emission_matrix, initial_probabilities
+    )
+
+    return self.populate_tab_notes(tab, final_sequence)
+
+  def _build_hmm_inputs(self, tab):
+    """Iterates measures to build the HMM vocabulary, observation sequence, and emission matrix.
+
+    Args:
+        tab (dict): Tab template whose "measures" list is populated as a side effect.
+
+    Returns:
+        tuple: (notes_vocabulary, notes_sequence, fingerings_vocabulary,
+                emission_matrix, initial_probabilities)
+    """
     notes_vocabulary = []
     notes_sequence = []
-    
     fingerings_vocabulary = []
-
     emission_matrix = np.array([])
     initial_probabilities = None
-    
 
     for measure in self.measures:
-      res_measure = {"events":[]}
-
-      measure_events = measure.timeline
-
-      for event_tick, event_types in measure_events.items():        
+      res_measure = {"events": []}
+      for event_tick, event_types in measure.timeline.items():
         event = {
           "time": self.midi.tick_to_time(int(event_tick)),
           "time_ticks": int(event_tick),
-          "measure_timing": (event_tick - measure.measure_start)/measure.duration_ticks
+          "measure_timing": (event_tick - measure.measure_start) / measure.duration_ticks,
         }
-        
+
         if "time_signature" in event_types:
           ts = event_types["time_signature"]
           event["time_signature_change"] = [ts.numerator, ts.denominator]
 
-        if "notes" in event_types: #if notes contains one or more notes at a specific timing
-          event["notes"] = [] #Signals there are notes in this event
-          
+        if "notes" in event_types:
+          event["notes"] = []
           notes = event_types["notes"]
-          
-          notes_pitches = tuple(set([note.pitch for note in notes]))
-          notes = [Note(pitch) for pitch in notes_pitches]
-          
-          notes = self.fretboard.fix_oob_notes(notes, preserve_highest_note=False)
-          
+          notes_pitches = tuple(set(note.pitch for note in notes))
+          notes = self.fretboard.fix_oob_notes([Note(p) for p in notes_pitches], preserve_highest_note=False)
           note_options = self.fretboard.get_note_options(notes)
-          
+
           if notes_pitches not in notes_vocabulary:
             fingering_options = self.fretboard.get_possible_fingerings(note_options)
-            
-            if len(fingering_options) > 0:   
+            if len(fingering_options) > 0:
               notes_vocabulary.append(notes_pitches)
-              
-              fingerings_vocabulary += fingering_options 
-                            
+              fingerings_vocabulary += fingering_options
               if initial_probabilities is None:
-                isolated_difficulties = [compute_isolated_path_difficulty(self.fretboard.G, path, self.tuning) for path in fingering_options]
-                initial_probabilities = difficulties_to_probabilities(isolated_difficulties)
-              
+                isolated = [compute_isolated_path_difficulty(self.fretboard.G, p, self.tuning) for p in fingering_options]
+                initial_probabilities = difficulties_to_probabilities(isolated)
               emission_matrix = expand_emission_matrix(emission_matrix, fingering_options)
-            
+
           if notes_pitches in notes_vocabulary:
             notes_sequence.append(notes_vocabulary.index(notes_pitches))
           else:
             notes_sequence.append(-1)
-            
+
         res_measure["events"].append(event)
-
       tab["measures"].append(res_measure)
-            
-    transition_matrix = build_transition_matrix(self.fretboard.G, fingerings_vocabulary, self.weights, self.tuning)
-    
-    initial_probabilities = np.hstack((initial_probabilities, np.zeros(len(transition_matrix) - len(initial_probabilities))))
-    
-    sequence_indices = viterbi(notes_sequence, transition_matrix, emission_matrix, initial_probabilities)
 
-    final_sequence = np.array(fingerings_vocabulary, dtype=object)[sequence_indices]
-    
-    tab = self.populate_tab_notes(tab, final_sequence)
-    
-    
-    return tab
+    return notes_vocabulary, notes_sequence, fingerings_vocabulary, emission_matrix, initial_probabilities
+
+  def _run_viterbi(self, notes_sequence, fingerings_vocabulary, emission_matrix, initial_probabilities):
+    """Builds the transition matrix and runs Viterbi to find the optimal fingering sequence.
+
+    Args:
+        notes_sequence (list): Observation indices into the notes vocabulary.
+        fingerings_vocabulary (list): All fingerings that appear in the piece.
+        emission_matrix (np.ndarray): Emission matrix.
+        initial_probabilities (np.ndarray): Initial state distribution.
+
+    Returns:
+        np.ndarray: Sequence of fingerings (one per observed chord).
+    """
+    transition_matrix = build_transition_matrix(
+        self.fretboard.G, fingerings_vocabulary, self.weights, self.tuning
+    )
+    initial_probabilities = np.hstack((
+        initial_probabilities,
+        np.zeros(len(transition_matrix) - len(initial_probabilities)),
+    ))
+    sequence_indices = viterbi(notes_sequence, transition_matrix, emission_matrix, initial_probabilities)
+    return np.array(fingerings_vocabulary, dtype=object)[sequence_indices]
 
   def populate_tab_notes(self, tab, sequence):
     """Populates the tab template with notes and their fingerings.
