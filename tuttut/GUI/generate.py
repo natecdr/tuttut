@@ -5,8 +5,6 @@ from pathlib import Path
 
 sys.path.append("./..")
 
-import os
-
 from tuttut.logic.tab import Tab
 from tuttut.logic.theory import Tuning
 
