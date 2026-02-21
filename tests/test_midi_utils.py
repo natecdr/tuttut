@@ -1,7 +1,7 @@
 import unittest
 import pretty_midi
 
-from tuttut import midi_utils
+from tuttut.logic import midi_utils
 
 class TestMidiUtils(unittest.TestCase):
     def setUp(self):
