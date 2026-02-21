@@ -105,13 +105,13 @@ def transpose_note(note, semitones):
     return theory.Note(note.pitch + semitones)
 
 def remove_duplicate_notes(notes):
-  pitches = []
+  seen_pitches = set()
   res_notes = []
   for note in notes:
-    if not note.pitch in pitches:
-      pitches.append(note.pitch)
+    if note.pitch not in seen_pitches:
+      seen_pitches.add(note.pitch)
       res_notes.append(note)
-      
+
   return res_notes
 
 def sort_notes_by_pitch(notes):

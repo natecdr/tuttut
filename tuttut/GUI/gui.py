@@ -6,11 +6,6 @@ import eel
 
 from tuttut.GUI import config, gui_utils, dialogs, generate
 
-class UIOpenMode:
-    NONE = 0
-    CHROME = 1
-    USER_DEFAULT = 2
-
 # Setup eels root folder
 eel.init(config.FRONTEND_ASSET_FOLDER)
 
@@ -89,9 +84,9 @@ def start(open_mode):
     """ Start the UI using Eel """
     try:
         chrome_available = gui_utils.can_use_chrome()
-        if open_mode == UIOpenMode.CHROME and chrome_available:
+        if open_mode == config.UIOpenMode.CHROME and chrome_available:
             eel.start('index.html', size=(650, 250), port=0)
-        elif open_mode == UIOpenMode.USER_DEFAULT or (open_mode == UIOpenMode.CHROME and not chrome_available):
+        elif open_mode == config.UIOpenMode.USER_DEFAULT or (open_mode == config.UIOpenMode.CHROME and not chrome_available):
             eel.start('index.html', size=(650, 250), port=0, mode='user default')
         else:
             port = gui_utils.get_port()
@@ -101,4 +96,4 @@ def start(open_mode):
         pass  # This is what the bottle server raises
 
 if __name__ == "__main__":
-    start(UIOpenMode.CHROME)
+    start(config.UIOpenMode.CHROME)
