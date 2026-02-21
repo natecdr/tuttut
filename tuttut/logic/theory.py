@@ -26,12 +26,19 @@ class Note:
     return isinstance(other, Note) and self.pitch == other.pitch
   
   def __hash__(self):
-    """Computes the hash for the Note."""
-    return hash((self.name, id(self)))
+    """Computes the hash for the Note.
+
+    Uses object identity so that each Note instance is a distinct graph node,
+    even when two instances share the same pitch.  This allows the fretboard
+    graph to hold one node per (string, fret) position rather than one per
+    unique pitch.  Note: __eq__ is pitch-based, so the standard hash/equality
+    contract is intentionally relaxed here in favour of per-instance identity.
+    """
+    return id(self)
 
   def __repr__(self):
     """Returns a representation of the Note."""
-    return self.name + "-" + str(hash(self))[2:4]
+    return self.name
 
 class Degree(Enum): #Degree of a note enum
   """Degree of a note enum."""
