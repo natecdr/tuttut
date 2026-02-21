@@ -20,7 +20,8 @@ dependencies = [
     "matplotlib==3.5.3",
     "networkx==2.8.6",
     "numpy==1.23.2",
-    "pretty_midi==0.2.9"
+    "pretty_midi==0.2.9",
+    "eel==0.18.2"
 ]
 
 [project.urls]
