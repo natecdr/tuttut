@@ -1,20 +1,34 @@
-import traceback
-import numpy as np
-from pretty_midi.containers import TimeSignature
-from tuttut.logic.theory import Measure, Note
-from tuttut.logic.midi_utils import *
-from tuttut.logic.graph_utils import *
+import itertools
+import math
+import matplotlib.pyplot as plt
 import networkx as nx
-import json
-import os
-from pathlib import Path
+
+from tuttut.logic.theory import Note
+from tuttut.logic.midi_utils import transpose_note, remove_duplicate_notes
+from tuttut.logic.graph_utils import build_path_graph, is_path_already_checked
+
+DEFAULT_SCALE_LENGTH = 650
+FRET_SCALE_DIVISOR = 17.817  # "Rule of 18": divides remaining scale length to find each fret position
+MAX_FRET_SPAN = 5  # Maximum fret span allowed in a single fingering
 
 class Fretboard:
     def __init__(self, tuning):
         self.tuning = tuning
         self.nstrings = tuning.nstrings
-        self.scale_length = 650
+        self.scale_length = DEFAULT_SCALE_LENGTH
         self.G = self._build_complete_graph()
+        self._pitch_index = self._build_pitch_index()
+
+    def _build_pitch_index(self):
+        """Builds a {pitch: [node, ...]} index for O(1) note lookup.
+
+        Returns:
+            dict: Mapping from MIDI pitch integer to list of graph nodes at that pitch.
+        """
+        index = {}
+        for node in self.G.nodes:
+            index.setdefault(node.pitch, []).append(node)
+        return index
 
     def _build_complete_graph(self):
         """Builds the complete graph representing the fretboard.
@@ -49,17 +63,15 @@ class Fretboard:
         return note_options
     
     def get_specific_note_options(self, note):
-        """Get all nodes that correspond to a specific note in a graph.
+        """Returns all fretboard nodes that play a specific note.
 
         Args:
             note (Note): Note to find on the fretboard
 
         Returns:
-            list: List of nodes thar play the specified note
+            list: Nodes whose pitch matches the given note
         """
-        nodes = list(self.G.nodes)
-
-        return [node for node in nodes if node == note]
+        return self._pitch_index.get(note.pitch, [])
     
     def get_possible_fingerings(self, note_options): 
         """Returns all possible fingerings in a path graph
@@ -78,7 +90,6 @@ class Fretboard:
 
         for note_options_permutation in list(itertools.permutations(note_options)):
             path_graph = build_path_graph(self.G, note_options_permutation)
-            # display_path_graph(path_graph)
             for possible_source_node in note_options_permutation[0]:
                 permutation_fingerings = nx.all_simple_paths(path_graph, possible_source_node, target=note_options_permutation[-1])
                 for fingering in permutation_fingerings:
@@ -151,26 +162,11 @@ class Fretboard:
         remaining_scale_length = self.scale_length
         
         for _ in range(nfret):
-            fret_height = remaining_scale_length / 17.817
+            fret_height = remaining_scale_length / FRET_SCALE_DIVISOR
             res += fret_height
             remaining_scale_length -= fret_height
             
         return res
-    
-    def is_edge_possible(self, possible_note, possible_target_note):
-        """Checks if a connection is possible between 2 nodes
-
-        Args:
-            possible_note (Note): Source note
-            possible_target_note (Note): Target note
-            G (networkx.Graph): Fretboard graph
-
-        Returns:
-            bool: Possibility of the connection
-        """
-        is_distance_possible = self.G[possible_note][possible_target_note]["distance"] < 6
-        is_different_string = self.G.nodes[possible_note]["pos"][0] != self.G.nodes[possible_target_note]["pos"][0]
-        return is_distance_possible and is_different_string
     
     def is_fingering_possible(self, fingering, note_arrays):
         """Checks if path is possible and playable.
@@ -189,7 +185,7 @@ class Fretboard:
 
         #No more than 5 fret span
         used_frets = [self.G.nodes[note]["pos"][1] for note in fingering if self.G.nodes[note]["pos"][1] != 0]
-        max_fret_span = (max(used_frets) - min(used_frets)) < 5 if len(used_frets) > 0 else True
+        max_fret_span = (max(used_frets) - min(used_frets)) < MAX_FRET_SPAN if len(used_frets) > 0 else True
 
         #Path doesn't visit more nodes than necessary
         right_length = len(fingering) <= len(note_arrays)
