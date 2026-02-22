@@ -16,6 +16,7 @@ def init_parser():
   """
   parser = argparse.ArgumentParser(description="MIDI to Guitar Tabs convertor")
   parser.add_argument("source", metavar="src", type=Path, help = "Name of the MIDI file to convert")
+  parser.add_argument("output_dir", metavar="src", type=Path, help = "Name of the MIDI file to convert")
   return parser
 
 if __name__ == "__main__":
@@ -27,10 +28,10 @@ if __name__ == "__main__":
 
   try:
     start = time()
-    f = pretty_midi.PrettyMIDI(Path("./midis", file).as_posix())
-    tab = Tab(file.stem, Tuning(), f, weights=weights)
-    # tab = Tab(file.stem, Tuning([Note(69), Note(64), Note(60), Note(67)]), f, weights=weights)
-    tab.to_ascii()
+    for i in range(100):
+      f = pretty_midi.PrettyMIDI(Path(file).as_posix())
+      tab = Tab(file.stem, Tuning(), f, weights=weights, output_dir = args.output_dir)
+      tab.to_ascii()
     print("Time :", time() - start)
 
   except Exception as e:
