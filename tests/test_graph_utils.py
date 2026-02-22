@@ -26,12 +26,11 @@ class TestGraphUtils(unittest.TestCase):
     def setUp(self):
         self.tuning = Tuning()
         self.fretboard = Fretboard(self.tuning)
-        self.G = self.fretboard.G
         self.positions = self.fretboard.positions
         self.weights = {"b": 1, "height": 1, "length": 1, "n_changed_strings": 1}
 
         # Index nodes by (string, fret) position for explicit access
-        by_pos = {self.G.nodes[n]["pos"]: n for n in self.G.nodes}
+        by_pos = {v: k for k, v in self.positions.items()}
 
         # String 0 (E4=64): frets 0-20
         self.s0f0  = by_pos[(0, 0)]   # open E4, pitch 64
@@ -98,7 +97,7 @@ class TestGraphUtils(unittest.TestCase):
         # Two open strings on adjacent strings
         opts_s0 = [self.s0f0]
         opts_s1 = [self.s1f0]
-        pg = graph_utils.build_path_graph(self.G, [opts_s0, opts_s1])
+        pg = graph_utils.build_path_graph(self.positions, [opts_s0, opts_s1], self.tuning.nstrings)
 
         import networkx as nx
         self.assertIsInstance(pg, nx.DiGraph)
@@ -113,23 +112,27 @@ class TestGraphUtils(unittest.TestCase):
             self.assertIn(v, opts_s1)
 
     def test_is_edge_possible(self):
+        def is_edge(n1, n2):
+            dist = graph_utils._distance_between(self.positions[n1], self.positions[n2], self.tuning.nstrings)
+            return graph_utils.is_edge_possible(n1, n2, self.positions, dist)
+
         # Same string → impossible
-        self.assertFalse(graph_utils.is_edge_possible(self.s0f0, self.s0f1, self.G))
+        self.assertFalse(is_edge(self.s0f0, self.s0f1))
 
         # Adjacent strings, open positions (distance 0 → possible)
-        self.assertTrue(graph_utils.is_edge_possible(self.s0f0, self.s1f0, self.G))
+        self.assertTrue(is_edge(self.s0f0, self.s1f0))
 
         # Different strings, adjacent frets → possible
-        self.assertTrue(graph_utils.is_edge_possible(self.s0f1, self.s1f1, self.G))
+        self.assertTrue(is_edge(self.s0f1, self.s1f1))
 
-        # Edge to an open-string node always has stored distance 0, so it is possible
+        # Edge to an open-string node always has distance 0, so it is possible
         # (open strings are treated as "costless" transitions in the graph).
-        self.assertTrue(graph_utils.is_edge_possible(self.s0f1, self.s1f0, self.G))
+        self.assertTrue(is_edge(self.s0f1, self.s1f0))
 
         # Two fretted nodes 14 frets apart → distance > MAX_EDGE_DISTANCE=6 → impossible
-        by_pos = {self.G.nodes[n]["pos"]: n for n in self.G.nodes}
+        by_pos = {v: k for k, v in self.positions.items()}
         s1f15 = by_pos[(1, 15)]
-        self.assertFalse(graph_utils.is_edge_possible(self.s0f1, s1f15, self.G))
+        self.assertFalse(is_edge(self.s0f1, s1f15))
 
     def test_is_path_already_checked(self):
         path_a = (self.s0f1, self.s1f1)
@@ -190,11 +193,13 @@ class TestGraphUtils(unittest.TestCase):
         )
 
     def test_get_path_length(self):
+        pg = graph_utils.build_path_graph(self.positions, [[self.s0f1], [self.s1f1]], self.tuning.nstrings)
+
         # Single note → no edges → length 0
-        self.assertEqual(get_path_length(self.G, (self.s0f1,)), 0)
+        self.assertEqual(get_path_length(pg, (self.s0f1,)), 0)
 
         # Two notes → normalised in [0, 1]
-        length = get_path_length(self.G, (self.s0f1, self.s1f1))
+        length = get_path_length(pg, (self.s0f1, self.s1f1))
         self.assertGreaterEqual(length, 0)
         self.assertLessEqual(length, 1)
 
@@ -286,7 +291,7 @@ class TestGraphUtils(unittest.TestCase):
         self.assertTrue(len(fingerings_two) > 0)
         for f in fingerings_two:
             self.assertEqual(len(f), 2)
-            strings = [self.G.nodes[n]["pos"][0] for n in f]
+            strings = [self.positions[n][0] for n in f]
             self.assertEqual(len(strings), len(set(strings)))  # no two notes on same string
 
     def test_fix_impossible_notes(self):

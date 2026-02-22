@@ -1,18 +1,39 @@
+import math
 import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
 
-from tuttut.logic.difficulty import compute_path_difficulty
+from tuttut.logic.difficulty import compute_path_difficulty, precompute_fingering_stats, get_dheight_score, laplace_distro
 
 MAX_EDGE_DISTANCE = 6    # Maximum fretboard distance between two notes to form a valid edge
 
 
-def build_path_graph(G, note_arrays):
+def _distance_between(p1, p2, nstrings):
+    """Computes the fretboard distance between two (string, fret) positions.
+
+    Open string targets (fret=0) always return 0, matching the original graph convention
+    where open-string nodes were always considered reachable.
+
+    Args:
+        p1 (tuple): Source (string_index, fret_index)
+        p2 (tuple): Target (string_index, fret_index)
+        nstrings (int): Total number of strings, used to normalise string spacing
+
+    Returns:
+        float: Fretboard distance
+    """
+    if p2[1] == 0:
+        return 0
+    return math.dist((p1[0] / nstrings, p1[1]), (p2[0] / nstrings, p2[1]))
+
+
+def build_path_graph(positions, note_arrays, nstrings):
     """Returns a path graph corresponding to all possible positions for the notes of a chord.
 
     Args:
-        G (networkx.Graph): Fretboard graph
+        positions (dict): Mapping from fretboard node to (string, fret) position tuple
         note_arrays (list): List of possible positions for each note
+        nstrings (int): Total number of strings on the instrument
 
     Returns:
         networkx.DiGraph: Path graph for all possible positions
@@ -26,27 +47,26 @@ def build_path_graph(G, note_arrays):
     for idx, note_array in enumerate(note_arrays[:-1]):
         for possible_note in note_array:
             for possible_target_note in note_arrays[idx + 1]:
-                distance = G[possible_note][possible_target_note]["distance"]
-                if is_edge_possible(possible_note, possible_target_note, G):
+                distance = _distance_between(positions[possible_note], positions[possible_target_note], nstrings)
+                if is_edge_possible(possible_note, possible_target_note, positions, distance):
                     res.add_edge(possible_note, possible_target_note, distance=distance)
 
     return res
 
 
-def is_edge_possible(possible_note, possible_target_note, G):
+def is_edge_possible(note, target, positions, distance):
     """Checks if a connection is possible between two fretboard nodes.
 
     Args:
-        possible_note (Note): Source note
-        possible_target_note (Note): Target note
-        G (networkx.Graph): Fretboard graph
+        note (Note): Source note
+        target (Note): Target note
+        positions (dict): Mapping from fretboard node to (string, fret) position tuple
+        distance (float): Pre-computed fretboard distance between the two nodes
 
     Returns:
         bool: Whether the connection is valid
     """
-    is_distance_possible = G[possible_note][possible_target_note]["distance"] < MAX_EDGE_DISTANCE
-    is_different_string = G.nodes[possible_note]["pos"][0] != G.nodes[possible_target_note]["pos"][0]
-    return is_distance_possible and is_different_string
+    return distance < MAX_EDGE_DISTANCE and positions[note][0] != positions[target][0]
 
 
 def is_path_already_checked(paths, current_path):
@@ -127,6 +147,30 @@ def viterbi(V, Tm, Em, initial_distribution=None):
     return np.flip(S, axis=0).astype(int)
 
 
+def _compute_pair_easiness(curr_stats, prev_stats, weights, tuning):
+    """Computes the easiness of transitioning from a previous fingering to a current one.
+
+    Args:
+        curr_stats (dict): Precomputed stats for the current fingering
+        prev_stats (dict): Precomputed stats for the previous fingering
+        weights (dict): Difficulty component weights
+        tuning (Tuning): Instrument tuning
+
+    Returns:
+        float: Easiness value (higher = easier transition)
+    """
+    curr_rh = curr_stats["raw_height"] if curr_stats["raw_height"] != 0 else prev_stats["raw_height"]
+    dheight = get_dheight_score(curr_rh, prev_stats["raw_height"], tuning)
+    n_changed = (curr_stats["n_notes"] - len(curr_stats["all_strings"] & prev_stats["non_open_strings"])) / tuning.nstrings
+
+    return (
+        laplace_distro(dheight, b=weights["b"])
+        * 1 / (1 + curr_stats["height_score"] * weights["height"])
+        * 1 / (1 + curr_stats["span_score"] * weights["length"])
+        * 1 / (1 + n_changed * weights["n_changed_strings"])
+    )
+
+
 def build_transition_matrix(positions, fingerings, weights, tuning):
     """Builds the transition matrix over all fingerings.
 
@@ -140,10 +184,11 @@ def build_transition_matrix(positions, fingerings, weights, tuning):
         np.ndarray: Transition matrix of shape (n_fingerings, n_fingerings)
     """
     n = len(fingerings)
+    stats = precompute_fingering_stats(positions, fingerings, tuning)
     transition_matrix = np.zeros((n, n))
     for iprevious in range(n):
         easiness = np.array([
-            1 / compute_path_difficulty(positions, fingerings[icurrent], fingerings[iprevious], weights, tuning)
+            _compute_pair_easiness(stats[icurrent], stats[iprevious], weights, tuning)
             for icurrent in range(n)
         ])
         transition_matrix[iprevious] = difficulties_to_probabilities(easiness)

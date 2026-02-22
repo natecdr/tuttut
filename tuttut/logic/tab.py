@@ -187,7 +187,7 @@ class Tab:
           continue
         
         for path_note in sequence[ievent]:
-          string, fret = self.fretboard.G.nodes[path_note]["pos"]   
+          string, fret = self.fretboard.positions[path_note]
           event["notes"].append({
             "degree": path_note.degree,
             "octave": path_note.octave,

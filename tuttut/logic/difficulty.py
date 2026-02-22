@@ -176,6 +176,32 @@ def get_path_length(G, path):
     return length
 
 
+def precompute_fingering_stats(positions, fingerings, tuning):
+    """Precomputes per-fingering stats to avoid redundant computation in the transition matrix.
+
+    Args:
+        positions (dict): Mapping from fretboard node to (string, fret) position tuple
+        fingerings (list): All fingerings to precompute stats for
+        tuning (Tuning): Instrument tuning
+
+    Returns:
+        list[dict]: One dict per fingering with keys: raw_height, height_score, span_score,
+                    all_strings, non_open_strings, n_notes
+    """
+    stats = []
+    for f in fingerings:
+        rh = get_raw_height(positions, f)
+        stats.append({
+            "raw_height": rh,
+            "height_score": get_height_score(rh, tuning),
+            "span_score": get_path_span(positions, f),
+            "all_strings": frozenset(positions[note][0] for note in f),
+            "non_open_strings": frozenset(positions[note][0] for note in f if positions[note][1] != 0),
+            "n_notes": len(f),
+        })
+    return stats
+
+
 def get_path_span(positions, path):
     """Returns the normalised vertical fret span of a path.
 

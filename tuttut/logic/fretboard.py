@@ -16,10 +16,22 @@ class Fretboard:
         self.tuning = tuning
         self.nstrings = tuning.nstrings
         self.scale_length = DEFAULT_SCALE_LENGTH
-        self.G = self._build_complete_graph()
+        self.positions = self._build_positions()
         self._pitch_index = self._build_pitch_index()
-        self.positions = nx.get_node_attributes(self.G, "pos")
         self._fingering_cache = {}
+
+    def _build_positions(self):
+        """Builds a {node: (string_index, fret_index)} mapping directly from the tuning.
+
+        Returns:
+            dict: Mapping from fretboard node to (string, fret) position tuple
+        """
+        note_map = self.tuning.get_all_possible_notes()
+        positions = {}
+        for istring, string in enumerate(note_map):
+            for inote, note in enumerate(string):
+                positions[note] = (istring, inote)
+        return positions
 
     def _build_pitch_index(self):
         """Builds a {pitch: [node, ...]} index for O(1) note lookup.
@@ -28,7 +40,7 @@ class Fretboard:
             dict: Mapping from MIDI pitch integer to list of graph nodes at that pitch.
         """
         index = {}
-        for node in self.G.nodes:
+        for node in self.positions:
             index.setdefault(node.pitch, []).append(node)
         return index
 
@@ -95,7 +107,7 @@ class Fretboard:
             fingerings = [(note,) for note in note_options[0]]
         else:
             for note_options_permutation in list(itertools.permutations(note_options)):
-                path_graph = build_path_graph(self.G, note_options_permutation)
+                path_graph = build_path_graph(self.positions, note_options_permutation, self.nstrings)
                 for possible_source_node in note_options_permutation[0]:
                     permutation_fingerings = nx.all_simple_paths(path_graph, possible_source_node, target=note_options_permutation[-1])
                     for fingering in permutation_fingerings:
@@ -206,13 +218,15 @@ class Fretboard:
             G (networkx.Graph): Fretboard graph
             path (tuple): Path to display
         """
-        pos = nx.get_node_attributes(self.G,'pos')
+        G = self._build_complete_graph()
+        pos = nx.get_node_attributes(G, 'pos')
         plt.figure(figsize=(2,6))
-        nx.draw(self.G, pos)
-        nx.draw(self.G.subgraph(fingering), pos = pos, node_color="red")
+        nx.draw(G, pos)
+        nx.draw(G.subgraph(fingering), pos=pos, node_color="red")
         plt.show()
-        
+
     def display_complete_graph(self):
-        positions = nx.get_node_attributes(self.G, "pos")
-        nx.draw(self.G, pos=positions)
+        G = self._build_complete_graph()
+        pos = nx.get_node_attributes(G, "pos")
+        nx.draw(G, pos=pos)
         plt.show()
