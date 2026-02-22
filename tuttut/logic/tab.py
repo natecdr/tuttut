@@ -134,7 +134,7 @@ class Tab:
               notes_vocabulary.append(notes_pitches)
               fingerings_vocabulary += fingering_options
               if initial_probabilities is None:
-                isolated = [compute_isolated_path_difficulty(self.fretboard.G, p, self.tuning) for p in fingering_options]
+                isolated = [compute_isolated_path_difficulty(self.fretboard.positions, p, self.tuning) for p in fingering_options]
                 initial_probabilities = difficulties_to_probabilities(isolated)
               emission_matrix = expand_emission_matrix(emission_matrix, fingering_options)
 
@@ -161,7 +161,7 @@ class Tab:
         np.ndarray: Sequence of fingerings (one per observed chord).
     """
     transition_matrix = build_transition_matrix(
-        self.fretboard.G, fingerings_vocabulary, self.weights, self.tuning
+        self.fretboard.positions, fingerings_vocabulary, self.weights, self.tuning
     )
     initial_probabilities = np.hstack((
         initial_probabilities,

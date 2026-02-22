@@ -18,6 +18,8 @@ class Fretboard:
         self.scale_length = DEFAULT_SCALE_LENGTH
         self.G = self._build_complete_graph()
         self._pitch_index = self._build_pitch_index()
+        self.positions = nx.get_node_attributes(self.G, "pos")
+        self._fingering_cache = {}
 
     def _build_pitch_index(self):
         """Builds a {pitch: [node, ...]} index for O(1) note lookup.
@@ -73,7 +75,7 @@ class Fretboard:
         """
         return self._pitch_index.get(note.pitch, [])
     
-    def get_possible_fingerings(self, note_options): 
+    def get_possible_fingerings(self, note_options):
         """Returns all possible fingerings in a path graph
 
         Args:
@@ -83,19 +85,24 @@ class Fretboard:
         Returns:
             list: List of paths
         """
-        fingerings = []
-        
-        if len(note_options) == 1:
-            return [(note,) for note in note_options[0]]
+        cache_key = frozenset(opts[0].pitch for opts in note_options)
+        if cache_key in self._fingering_cache:
+            return self._fingering_cache[cache_key]
 
-        for note_options_permutation in list(itertools.permutations(note_options)):
-            path_graph = build_path_graph(self.G, note_options_permutation)
-            for possible_source_node in note_options_permutation[0]:
-                permutation_fingerings = nx.all_simple_paths(path_graph, possible_source_node, target=note_options_permutation[-1])
-                for fingering in permutation_fingerings:
-                    if not is_path_already_checked(fingerings, fingering) and self.is_fingering_possible(fingering, note_options_permutation):
-                        fingerings.append(tuple(fingering))
-                    
+        fingerings = []
+
+        if len(note_options) == 1:
+            fingerings = [(note,) for note in note_options[0]]
+        else:
+            for note_options_permutation in list(itertools.permutations(note_options)):
+                path_graph = build_path_graph(self.G, note_options_permutation)
+                for possible_source_node in note_options_permutation[0]:
+                    permutation_fingerings = nx.all_simple_paths(path_graph, possible_source_node, target=note_options_permutation[-1])
+                    for fingering in permutation_fingerings:
+                        if not is_path_already_checked(fingerings, fingering) and self.is_fingering_possible(fingering, note_options_permutation):
+                            fingerings.append(tuple(fingering))
+
+        self._fingering_cache[cache_key] = fingerings
         return fingerings
     
     def fix_oob_notes(self, notes, preserve_highest_note = False):
@@ -180,11 +187,11 @@ class Fretboard:
             bool: If the path is possible and playable
         """
         #No 2 fingers on a single string
-        plucked_strings = [self.G.nodes[note]["pos"][0] for note in fingering]
+        plucked_strings = [self.positions[note][0] for note in fingering]
         one_per_string = len(plucked_strings) == len(set(plucked_strings))
 
         #No more than 5 fret span
-        used_frets = [self.G.nodes[note]["pos"][1] for note in fingering if self.G.nodes[note]["pos"][1] != 0]
+        used_frets = [self.positions[note][1] for note in fingering if self.positions[note][1] != 0]
         max_fret_span = (max(used_frets) - min(used_frets)) < MAX_FRET_SPAN if len(used_frets) > 0 else True
 
         #Path doesn't visit more nodes than necessary

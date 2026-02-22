@@ -27,6 +27,7 @@ class TestGraphUtils(unittest.TestCase):
         self.tuning = Tuning()
         self.fretboard = Fretboard(self.tuning)
         self.G = self.fretboard.G
+        self.positions = self.fretboard.positions
         self.weights = {"b": 1, "height": 1, "length": 1, "n_changed_strings": 1}
 
         # Index nodes by (string, fret) position for explicit access
@@ -156,36 +157,36 @@ class TestGraphUtils(unittest.TestCase):
         self.assertGreater(laplace_distro(0, b=1), laplace_distro(1, b=1))
 
     def test_get_nfingers(self):
-        self.assertEqual(get_nfingers(self.G, (self.s0f0,)), 0)   # open
-        self.assertEqual(get_nfingers(self.G, (self.s0f1,)), 1)   # fretted
-        self.assertEqual(get_nfingers(self.G, (self.s0f0, self.s1f1)), 1)  # mixed
+        self.assertEqual(get_nfingers(self.positions, (self.s0f0,)), 0)   # open
+        self.assertEqual(get_nfingers(self.positions, (self.s0f1,)), 1)   # fretted
+        self.assertEqual(get_nfingers(self.positions, (self.s0f0, self.s1f1)), 1)  # mixed
 
     def test_get_n_changed_strings(self):
         path = (self.s0f1, self.s1f1)
-        score = get_n_changed_strings(self.G, path, path, self.tuning)
+        score = get_n_changed_strings(self.positions, path, path, self.tuning)
         self.assertGreaterEqual(score, 0)
         self.assertLessEqual(score, 1)
 
         # Completely different strings → higher score than repeating same path
-        score_same = get_n_changed_strings(self.G, (self.s0f1,), (self.s0f1,), self.tuning)
-        score_diff = get_n_changed_strings(self.G, (self.s0f1,), (self.s1f1,), self.tuning)
+        score_same = get_n_changed_strings(self.positions, (self.s0f1,), (self.s0f1,), self.tuning)
+        score_diff = get_n_changed_strings(self.positions, (self.s0f1,), (self.s1f1,), self.tuning)
         self.assertGreaterEqual(score_diff, score_same)
 
     def test_get_height(self):
         # Fretted note has positive normalised height
-        height = get_height_score(self.G, (self.s0f1,), self.tuning)
+        height = get_height_score(get_raw_height(self.positions, (self.s0f1,)), self.tuning)
         self.assertGreater(height, 0)
         self.assertLessEqual(height, 1)
 
         # Higher fret → higher score
-        height_low  = get_height_score(self.G, (self.s0f1,),  self.tuning)
-        height_high = get_height_score(self.G, (self.s0f10,), self.tuning)
+        height_low  = get_height_score(get_raw_height(self.positions, (self.s0f1,)),  self.tuning)
+        height_high = get_height_score(get_raw_height(self.positions, (self.s0f10,)), self.tuning)
         self.assertGreater(height_high, height_low)
 
         # Open string falls back to previous path's raw height
         self.assertEqual(
-            get_raw_height(self.G, (self.s0f0,), (self.s0f5,)),
-            get_raw_height(self.G, (self.s0f5,))
+            get_raw_height(self.positions, (self.s0f0,), (self.s0f5,)),
+            get_raw_height(self.positions, (self.s0f5,))
         )
 
     def test_get_path_length(self):
@@ -198,18 +199,18 @@ class TestGraphUtils(unittest.TestCase):
         self.assertLessEqual(length, 1)
 
     def test_compute_isolated_path_difficulty(self):
-        diff = compute_isolated_path_difficulty(self.G, (self.s0f1, self.s1f1), self.tuning)
+        diff = compute_isolated_path_difficulty(self.positions, (self.s0f1, self.s1f1), self.tuning)
         self.assertGreater(diff, 0)
         self.assertTrue(np.isfinite(diff))
 
         # Higher fret → harder
-        diff_low  = compute_isolated_path_difficulty(self.G, (self.s0f1,),  self.tuning)
-        diff_high = compute_isolated_path_difficulty(self.G, (self.s0f10,), self.tuning)
+        diff_low  = compute_isolated_path_difficulty(self.positions, (self.s0f1,),  self.tuning)
+        diff_high = compute_isolated_path_difficulty(self.positions, (self.s0f10,), self.tuning)
         self.assertLess(diff_low, diff_high)
 
     def test_compute_path_difficulty(self):
         path = (self.s0f1, self.s1f1)
-        diff = compute_path_difficulty(self.G, path, path, self.weights, self.tuning)
+        diff = compute_path_difficulty(self.positions, path, path, self.weights, self.tuning)
         self.assertGreater(diff, 0)
         self.assertTrue(np.isfinite(diff))
 
@@ -241,7 +242,7 @@ class TestGraphUtils(unittest.TestCase):
 
     def test_build_transition_matrix(self):
         fingerings = [(self.s0f1,), (self.s0f5,)]
-        Tm = graph_utils.build_transition_matrix(self.G, fingerings, self.weights, self.tuning)
+        Tm = graph_utils.build_transition_matrix(self.positions, fingerings, self.weights, self.tuning)
         self.assertEqual(Tm.shape, (2, 2))
         for row in Tm:
             self.assertAlmostEqual(float(np.sum(row)), 1.0)

@@ -100,16 +100,19 @@ def viterbi(V, Tm, Em, initial_distribution=None):
 
     initial_distribution = initial_distribution if initial_distribution is not None else np.full(M, 1 / M)
 
+    log_Tm = np.log(Tm)
+    log_Em = np.log(Em)
+
     omega = np.zeros((T, M))
-    omega[0, :] = np.log(initial_distribution * Em[:, V[0]])
+    omega[0, :] = np.log(initial_distribution) + log_Em[:, V[0]]
 
     prev = np.zeros((T - 1, M))
 
     for t in range(1, T):
-        for j in range(M):
-            probability = omega[t - 1] + np.log(Tm[:, j]) + np.log(Em[j, V[t]])
-            prev[t - 1, j] = np.argmax(probability)
-            omega[t, j] = np.max(probability)
+        # scores[i, j] = omega[t-1][i] + log_Tm[i, j] + log_Em[j, V[t]]
+        scores = omega[t - 1, :, np.newaxis] + log_Tm + log_Em[:, V[t]]
+        prev[t - 1] = np.argmax(scores, axis=0)
+        omega[t] = np.max(scores, axis=0)
 
     S = np.zeros(T)
     last_state = np.argmax(omega[T - 1, :])
@@ -124,11 +127,11 @@ def viterbi(V, Tm, Em, initial_distribution=None):
     return np.flip(S, axis=0).astype(int)
 
 
-def build_transition_matrix(G, fingerings, weights, tuning):
+def build_transition_matrix(positions, fingerings, weights, tuning):
     """Builds the transition matrix over all fingerings.
 
     Args:
-        G (networkx.Graph): Fretboard graph
+        positions (dict): Mapping from fretboard node to (string, fret) position tuple
         fingerings (list): All fingerings that can appear in the piece
         weights (dict): Difficulty component weights
         tuning (Tuning): Instrument tuning
@@ -140,7 +143,7 @@ def build_transition_matrix(G, fingerings, weights, tuning):
     transition_matrix = np.zeros((n, n))
     for iprevious in range(n):
         easiness = np.array([
-            1 / compute_path_difficulty(G, fingerings[icurrent], fingerings[iprevious], weights, tuning)
+            1 / compute_path_difficulty(positions, fingerings[icurrent], fingerings[iprevious], weights, tuning)
             for icurrent in range(n)
         ])
         transition_matrix[iprevious] = difficulties_to_probabilities(easiness)

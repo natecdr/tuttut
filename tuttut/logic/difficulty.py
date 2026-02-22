@@ -5,11 +5,11 @@ MAX_FRET_DISTANCE = 10   # Approximate upper bound for normalized path length
 SPAN_NORMALIZATION = 5   # Maximum expected fret span, used to normalize span score to [0, 1]
 
 
-def compute_path_difficulty(G, path, previous_path, weights, tuning):
+def compute_path_difficulty(positions, path, previous_path, weights, tuning):
     """Computes the difficulty of a path.
 
     Args:
-        G (networkx.Graph): Fretboard graph
+        positions (dict): Mapping from fretboard node to (string, fret) position tuple
         path (tuple): Path to compute the difficulty for
         previous_path (tuple): Previous played path
         weights (dict): Difficulty component weights
@@ -18,13 +18,13 @@ def compute_path_difficulty(G, path, previous_path, weights, tuning):
     Returns:
         float: Difficulty metric of a path
     """
-    raw_height = get_raw_height(G, path, previous_path)
-    previous_raw_height = get_raw_height(G, previous_path) if len(previous_path) > 0 else 0
+    raw_height = get_raw_height(positions, path, previous_path)
+    previous_raw_height = get_raw_height(positions, previous_path) if len(previous_path) > 0 else 0
 
-    height = get_height_score(G, path, tuning, previous_path)
+    height = get_height_score(raw_height, tuning)
     dheight = get_dheight_score(raw_height, previous_raw_height, tuning)
-    span = get_path_span(G, path)
-    n_changed_strings = get_n_changed_strings(G, path, previous_path, tuning)
+    span = get_path_span(positions, path)
+    n_changed_strings = get_n_changed_strings(positions, path, previous_path, tuning)
 
     easiness = (
         laplace_distro(dheight, b=weights["b"])
@@ -36,19 +36,21 @@ def compute_path_difficulty(G, path, previous_path, weights, tuning):
     return 1 / easiness
 
 
-def compute_isolated_path_difficulty(G, path, tuning):
+def compute_isolated_path_difficulty(positions, path, tuning):
     """Computes the difficulty of a path without considering the previous one.
 
     Args:
-        G (networkx.Graph): Fretboard graph
+        positions (dict): Mapping from fretboard node to (string, fret) position tuple
         path (tuple): Path to compute the difficulty for
         tuning (Tuning): Instrument tuning
 
     Returns:
         float: Difficulty metric of a path
     """
-    height = get_height_score(G, path, tuning)
-    span = get_path_span(G, path)
+    raw_height = get_raw_height(positions, path)
+
+    height = get_height_score(raw_height, tuning)
+    span = get_path_span(positions, path)
     easiness = 1 / (1 + height) * 1 / (1 + span)
     return 1 / easiness
 
@@ -67,24 +69,24 @@ def laplace_distro(x, b, mu=0.0):
     return (1 / (2 * b)) * math.exp(-abs(x - mu) / b)
 
 
-def get_nfingers(G, path):
+def get_nfingers(positions, path):
     """Returns the number of fingers needed for a path.
 
     Args:
-        G (networkx.Graph): Fretboard graph
+        positions (dict): Mapping from fretboard node to (string, fret) position tuple
         path (tuple): Path to compute the number of fingers for
 
     Returns:
         int: Number of fingers
     """
-    return sum(1 for note in path if G.nodes[note]["pos"][1] != 0)
+    return sum(1 for note in path if positions[note][1] != 0)
 
 
-def get_n_changed_strings(G, path, previous_path, tuning):
+def get_n_changed_strings(positions, path, previous_path, tuning):
     """Returns the normalised count of strings that changed vs the previous shape.
 
     Args:
-        G (networkx.Graph): Fretboard graph
+        positions (dict): Mapping from fretboard node to (string, fret) position tuple
         path (tuple): Current path
         previous_path (tuple): Previous played path
         tuning (Tuning): Instrument tuning
@@ -92,10 +94,10 @@ def get_n_changed_strings(G, path, previous_path, tuning):
     Returns:
         float: Normalised changed-string score in [0, 1]
     """
-    used_strings = set(G.nodes[note]["pos"][0] for note in path)
+    used_strings = set(positions[note][0] for note in path)
     previous_used_strings = set(
-        G.nodes[note]["pos"][0] for note in previous_path
-        if G.nodes[note]["pos"][1] != 0  # exclude open strings
+        positions[note][0] for note in previous_path
+        if positions[note][1] != 0  # exclude open strings
     )
     n_changed_strings = len(path) - len(used_strings.intersection(previous_used_strings))
     score = n_changed_strings / tuning.nstrings
@@ -103,7 +105,7 @@ def get_n_changed_strings(G, path, previous_path, tuning):
     return score
 
 
-def get_height_score(G, path, tuning, previous_path=None):
+def get_height_score(raw_height, tuning):
     """Returns the normalised height score for a path (0–1).
 
     Args:
@@ -115,31 +117,31 @@ def get_height_score(G, path, tuning, previous_path=None):
     Returns:
         float: Normalised height score
     """
-    height = get_raw_height(G, path, previous_path) / tuning.nfrets
+    height = raw_height / tuning.nfrets
     assert 0 <= height <= 1
     return height
 
 
-def get_raw_height(G, path, previous_path=None):
+def get_raw_height(positions, path, previous_path=None):
     """Returns the average of the highest and lowest fret positions in a path.
 
     Falls back to the previous path when all notes are open strings.
 
     Args:
-        G (networkx.Graph): Fretboard graph
+        positions (dict): Mapping from fretboard node to (string, fret) position tuple
         path (tuple): Current path
         previous_path (tuple, optional): Previous played path.
 
     Returns:
         float: Raw height value
     """
-    y = [G.nodes[note]["pos"][1] for note in path if G.nodes[note]["pos"][1] != 0]
+    y = [positions[note][1] for note in path if positions[note][1] != 0]
     if len(y) > 0:
         return (max(y) + min(y)) / 2
     elif previous_path is None:
         return 0
     else:
-        return get_raw_height(G, previous_path)
+        return get_raw_height(positions, previous_path)
 
 
 def get_dheight_score(height, previous_height, tuning):
@@ -174,17 +176,17 @@ def get_path_length(G, path):
     return length
 
 
-def get_path_span(G, path):
+def get_path_span(positions, path):
     """Returns the normalised vertical fret span of a path.
 
     Args:
-        G (networkx.Graph): Fretboard graph
+        positions (dict): Mapping from fretboard node to (string, fret) position tuple
         path (tuple): Path to compute the span for
 
     Returns:
         float: Normalised span in [0, 1]
     """
-    y = [G.nodes[note]["pos"][1] for note in path if G.nodes[note]["pos"][1] != 0]
+    y = [positions[note][1] for note in path if positions[note][1] != 0]
     span = (max(y) - min(y)) / SPAN_NORMALIZATION if len(y) > 0 else 0
     assert 0 <= span <= 1
     return span
