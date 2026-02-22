@@ -18,23 +18,14 @@ class Note:
     self.degree = self.name[:-1]
     self.octave = self.name[-1]
 
-  def __eq__(self, other):
-    """States the rules for whether or not 2 notes are equal.
-    
-    Two notes are considered equal if they are note objects and their degrees and octaves are the same.
+  def same_pitch_as(self, other: "Note") -> bool:
+    """Returns True if two Note instances represent the same MIDI pitch.
+
+    Note uses identity-based equality so that each fretboard position
+    remains a distinct graph node even when two positions share the same
+    pitch. Use this method for explicit pitch-value comparison instead of ==.
     """
     return isinstance(other, Note) and self.pitch == other.pitch
-  
-  def __hash__(self):
-    """Computes the hash for the Note.
-
-    Uses object identity so that each Note instance is a distinct graph node,
-    even when two instances share the same pitch.  This allows the fretboard
-    graph to hold one node per (string, fret) position rather than one per
-    unique pitch.  Note: __eq__ is pitch-based, so the standard hash/equality
-    contract is intentionally relaxed here in favour of per-instance identity.
-    """
-    return id(self)
 
   def __repr__(self):
     """Returns a representation of the Note."""
