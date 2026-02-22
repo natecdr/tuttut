@@ -1,7 +1,5 @@
 import math
 import numpy as np
-import networkx as nx
-import matplotlib.pyplot as plt
 
 from tuttut.logic.difficulty import compute_path_difficulty, precompute_fingering_stats, get_dheight_score, laplace_distro
 
@@ -38,6 +36,7 @@ def build_path_graph(positions, note_arrays, nstrings):
     Returns:
         networkx.DiGraph: Path graph for all possible positions
     """
+    import networkx as nx
     res = nx.DiGraph()
 
     for x, note_array in enumerate(note_arrays):
@@ -69,6 +68,51 @@ def is_edge_possible(note, target, positions, distance):
     return distance < MAX_EDGE_DISTANCE and positions[note][0] != positions[target][0]
 
 
+def find_valid_paths(positions, note_arrays, nstrings):
+    """Finds all valid paths through layered note options without building a graph.
+
+    Each layer contains possible fretboard positions for one note.
+    Adjacent layers are connected by edges satisfying is_edge_possible.
+
+    Args:
+        positions (dict): Mapping from fretboard node to (string, fret) position tuple
+        note_arrays (list): List of possible positions for each note
+        nstrings (int): Total number of strings on the instrument
+
+    Returns:
+        list[tuple]: All valid paths through the layers
+    """
+    # Build adjacency lists between consecutive layers
+    adjacency = []
+    for idx in range(len(note_arrays) - 1):
+        adj = {}
+        for note in note_arrays[idx]:
+            neighbors = []
+            for target in note_arrays[idx + 1]:
+                distance = _distance_between(positions[note], positions[target], nstrings)
+                if is_edge_possible(note, target, positions, distance):
+                    neighbors.append(target)
+            adj[note] = neighbors
+        adjacency.append(adj)
+
+    # DFS through layers
+    paths = []
+
+    def dfs(layer, current_path):
+        if layer == len(note_arrays) - 1:
+            paths.append(tuple(current_path))
+            return
+        for neighbor in adjacency[layer].get(current_path[-1], ()):
+            current_path.append(neighbor)
+            dfs(layer + 1, current_path)
+            current_path.pop()
+
+    for start in note_arrays[0]:
+        dfs(0, [start])
+
+    return paths
+
+
 def is_path_already_checked(paths, current_path):
     """Checks if a path is already present in the explored set, regardless of order.
 
@@ -91,6 +135,8 @@ def display_path_graph(path_graph, show_distances=True, show_names=True):
         show_distances (bool): Whether to show edge distances. Defaults to True.
         show_names (bool): Whether to show note names. Defaults to True.
     """
+    import matplotlib.pyplot as plt
+    import networkx as nx
     pos = nx.get_node_attributes(path_graph, "pos")
     nx.draw(path_graph, pos, with_labels=show_names)
 

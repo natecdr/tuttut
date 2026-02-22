@@ -155,7 +155,7 @@ def get_dheight_score(height, previous_height, tuning):
     Returns:
         float: Normalised delta-height score in [0, 1]
     """
-    dheight = np.abs(height - previous_height) / tuning.nfrets
+    dheight = abs(height - previous_height) / tuning.nfrets
     assert 0 <= dheight <= 1
     return dheight
 

@@ -1,11 +1,9 @@
 import itertools
 import math
-import matplotlib.pyplot as plt
-import networkx as nx
 
 from tuttut.logic.theory import Note
 from tuttut.logic.midi_utils import transpose_note, remove_duplicate_notes
-from tuttut.logic.graph_utils import build_path_graph, is_path_already_checked
+from tuttut.logic.graph_utils import find_valid_paths
 
 DEFAULT_SCALE_LENGTH = 650
 FRET_SCALE_DIVISOR = 17.817  # "Rule of 18": divides remaining scale length to find each fret position
@@ -46,13 +44,15 @@ class Fretboard:
 
     def _build_complete_graph(self):
         """Builds the complete graph representing the fretboard.
-        
+
         Each fret for each string is a node, each node is connected to all the others.
         Each edge contains the distance between their 2 nodes as their weight.
+        Only used by display functions.
 
         Returns:
             nx.Graph: Graph representing the fretboard
         """
+        import networkx as nx
         note_map = self.tuning.get_all_possible_notes()
 
         complete_graph = nx.Graph()
@@ -88,14 +88,13 @@ class Fretboard:
         return self._pitch_index.get(note.pitch, [])
     
     def get_possible_fingerings(self, note_options):
-        """Returns all possible fingerings in a path graph
+        """Returns all possible fingerings for a set of note options.
 
         Args:
-            G (networkx.Graph): Fretboard graph
-            note_arrays (list): List of possible positions for the notes
+            note_options (list): List of possible positions for the notes
 
         Returns:
-            list: List of paths
+            list: List of fingering tuples
         """
         cache_key = frozenset(opts[0].pitch for opts in note_options)
         if cache_key in self._fingering_cache:
@@ -106,13 +105,13 @@ class Fretboard:
         if len(note_options) == 1:
             fingerings = [(note,) for note in note_options[0]]
         else:
-            for note_options_permutation in list(itertools.permutations(note_options)):
-                path_graph = build_path_graph(self.positions, note_options_permutation, self.nstrings)
-                for possible_source_node in note_options_permutation[0]:
-                    permutation_fingerings = nx.all_simple_paths(path_graph, possible_source_node, target=note_options_permutation[-1])
-                    for fingering in permutation_fingerings:
-                        if not is_path_already_checked(fingerings, fingering) and self.is_fingering_possible(fingering, note_options_permutation):
-                            fingerings.append(tuple(fingering))
+            seen = set()
+            for note_options_permutation in itertools.permutations(note_options):
+                for path in find_valid_paths(self.positions, note_options_permutation, self.nstrings):
+                    key = frozenset(path)
+                    if key not in seen and self.is_fingering_possible(path, note_options_permutation):
+                        seen.add(key)
+                        fingerings.append(path)
 
         self._fingering_cache[cache_key] = fingerings
         return fingerings
@@ -218,6 +217,8 @@ class Fretboard:
             G (networkx.Graph): Fretboard graph
             path (tuple): Path to display
         """
+        import matplotlib.pyplot as plt
+        import networkx as nx
         G = self._build_complete_graph()
         pos = nx.get_node_attributes(G, 'pos')
         plt.figure(figsize=(2,6))
@@ -226,6 +227,8 @@ class Fretboard:
         plt.show()
 
     def display_complete_graph(self):
+        import matplotlib.pyplot as plt
+        import networkx as nx
         G = self._build_complete_graph()
         pos = nx.get_node_attributes(G, "pos")
         nx.draw(G, pos=pos)
