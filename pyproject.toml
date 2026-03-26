@@ -17,10 +17,10 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "matplotlib==3.5.3",
-    "networkx==2.8.6",
-    "numpy==1.23.2",
-    "pretty_midi==0.2.9",
+    "matplotlib>=3.5.3",
+    "networkx>=2.8.6",
+    "numpy>=1.23.2",
+    "pretty_midi>=0.2.9",
     "eel==0.18.2"
 ]
 
