@@ -9,12 +9,15 @@ from tuttut.logic.tab import Tab
 from tuttut.logic.theory import Tuning
 
 def tabify(midi_path, output_dir, parameters): 
-    """Nettoie de A à Z un scan.
+    """Convertissez un fichier MIDI en tablature ASCII et écrivez-le dans output_dir.
 
     Args:
-        path (str): Chemin du scan
-        output_path (str): Chemin de sortie du scan
-        preset (Dict): Paramètres de nettoyage
+        midi_path (str): Chemin du fichier MIDI
+        output_dir (str): Dossier où écrire la tablature (.txt)
+        parameters (Dict): Paramètres de la tablature ("degrees", "octaves", "nFrets")
+
+    Returns:
+        Tab: La tablature générée à partir du fichier MIDI
     """
     
     weights = {'b': 1, 'height': 1, 'length': 1, 'n_changed_strings': 1}
@@ -23,7 +26,9 @@ def tabify(midi_path, output_dir, parameters):
     f = pretty_midi.PrettyMIDI(filepath.as_posix())
     
     strings = [degree + str(octave) for degree, octave in zip(parameters["degrees"], parameters["octaves"])]
-    tuning = Tuning(strings)
+    tuning = Tuning(strings, nfrets=int(parameters["nFrets"]))
     
     tab = Tab(filepath.stem, tuning, f, weights=weights, output_dir = output_dir)
     tab.to_ascii()
+
+    return tab

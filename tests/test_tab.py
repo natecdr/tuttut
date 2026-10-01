@@ -257,3 +257,29 @@ class TestTabEdgeCases(unittest.TestCase):
         tab = Tab("test", self.tuning, midi, weights=weights)
 
         self.assertEqual(tab.weights, weights)
+
+
+class TestCustomFretCount(unittest.TestCase):
+    def test_nfrets_bounds_fretboard_positions(self):
+        """Tuning(nfrets=5) builds a fretboard whose highest fret is 5."""
+        midi = _make_midi([(64, 0.0, 0.5)])
+        tab = Tab("test", Tuning(nfrets=5), midi)
+
+        frets = [fret for _, fret in tab.fretboard.positions.values()]
+        self.assertEqual(max(frets), 5)
+
+    def test_high_note_shifted_into_fret_range(self):
+        """A high note is octave-shifted into the custom fret range."""
+        midi = _make_midi([(79, 0.0, 0.5)])
+        tab = Tab("test", Tuning(nfrets=5), midi)
+
+        notes = [
+            note
+            for measure in tab.tab["measures"]
+            for event in measure["events"]
+            for note in event.get("notes", [])
+        ]
+        self.assertEqual(len(notes), 1)
+        self.assertEqual(notes[0]["degree"], "G")
+        self.assertEqual(notes[0]["octave"], "4")
+        self.assertEqual(notes[0]["fret"], 3)

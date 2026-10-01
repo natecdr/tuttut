@@ -6,6 +6,7 @@ import unittest
 
 import pretty_midi
 
+from tuttut.GUI import generate
 from tuttut.logic.tab import Tab
 from tuttut.logic.theory import Tuning
 
@@ -78,3 +79,37 @@ class TestIntegration(unittest.TestCase):
                 lines = f.readlines()
 
         self.assertEqual(len(lines), ukulele.nstrings)  # 4 strings for ukulele
+
+
+class TestGuiGenerate(unittest.TestCase):
+    def test_nfrets_parameter_limits_output_frets(self):
+        """The GUI nFrets parameter limits the generated fret range."""
+        midi = _make_simple_midi([(79, 0.0, 0.5)])
+
+        with tempfile.TemporaryDirectory() as tmp:
+            midi_path = os.path.join(tmp, "high_note.mid")
+            midi.write(midi_path)
+
+            tab = generate.tabify(
+                midi_path,
+                tmp,
+                {
+                    "degrees": ["E", "B", "G", "D", "A", "E"],
+                    "octaves": [4, 3, 3, 3, 2, 2],
+                    "nFrets": "5",
+                },
+            )
+
+            self.assertTrue(os.path.isfile(os.path.join(tmp, "high_note.txt")))
+
+        self.assertEqual(tab.tuning.nfrets, 5)
+
+        notes = [
+            (note["degree"], note["octave"], note["string"], note["fret"])
+            for measure in tab.tab["measures"]
+            for event in measure["events"]
+            for note in event.get("notes", [])
+        ]
+        # G5 is unreachable with only 5 frets, so it is octave-shifted to G4,
+        # which is fret 3 on the high E string.
+        self.assertEqual(notes, [("G", "4", 0, 3)])
