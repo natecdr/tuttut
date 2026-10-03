@@ -52,15 +52,16 @@ class Tuning:
   standard_tuning = ["E4", "B3", "G3", "D3", "A2", "E2"]
   standard_ukulele_tuning = ["A4", "E4", "C4", "G4"]
 
-  def __init__(self, strings = standard_tuning):
+  def __init__(self, strings = standard_tuning, nfrets = 20):
     """Constructor for the Tuning object.
 
     Args:
         strings (list, optional): List of notes corresponding to the string notes. Defaults to standard_tuning.
+        nfrets (int, optional): Number of frets on the fretboard. Defaults to 20.
     """
     self._strings = np.array([Note(note_name_to_number(note)) for note in strings]) #Thin to thick
     self.nstrings = len(strings)
-    self.nfrets = 20
+    self.nfrets = nfrets
 
   @property
   def strings(self):
@@ -72,11 +73,7 @@ class Tuning:
     return self._strings
   
   def get_all_possible_notes(self):
-    """Returns all possible_notes on a fretboard for k strings and n frets.
-
-    Args:
-        tuning (Tuning): Tuning object
-        nfrets (int, optional): Number of frets. Defaults to 20.
+    """Returns all possible notes on a fretboard for k strings and n frets.
 
     Returns:
         list: All possible notes for the specified fretboard parameters
