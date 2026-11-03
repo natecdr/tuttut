@@ -1,10 +1,13 @@
 """Unit tests for the Tab class."""
 
+import os
+import tempfile
+import time
 import unittest
 import pretty_midi
 
 from tuttut.logic.tab import Tab
-from tuttut.logic.theory import Tuning
+from tuttut.logic.theory import Note, Tuning
 
 
 def _make_midi(notes_and_times):
@@ -257,6 +260,31 @@ class TestTabEdgeCases(unittest.TestCase):
         tab = Tab("test", self.tuning, midi, weights=weights)
 
         self.assertEqual(tab.weights, weights)
+        
+    def test_chord_larger_than_strings_keeps_bass_and_melody(self):
+        chord = [40, 45, 50, 55, 59, 64, 67]
+        tab = Tab("t", Tuning(), _make_midi([(p, 0.0, 0.5) for p in chord]))
+        notes = [n for m in tab.tab["measures"] for e in m["events"] for n in e.get("notes", [])]
+        pitches = {pretty_midi.note_name_to_number(n["degree"] + str(n["octave"])) for n in notes}
+        self.assertTrue(0 < len(notes) <= 6)
+        self.assertTrue(pitches <= set(chord))
+        self.assertIn(40, pitches); self.assertIn(67, pitches)
+
+    def test_huge_chord_is_fast(self):
+        start = time.time()
+        Tab("t", Tuning(), _make_midi([(p, 0.0, 0.5) for p in range(48, 78, 3)]))  # 10 notes
+        self.assertLess(time.time() - start, 2)
+
+    def test_empty_midi_does_not_crash(self):
+        Tab("t", Tuning(), _make_midi([]))
+
+    def test_dotted_name_keeps_full_filename(self):
+        with tempfile.TemporaryDirectory() as d:
+            Tab("my.midi.file", Tuning(), _make_midi([(60, 0, 0.5)]), output_dir=d).to_ascii()
+            self.assertTrue(os.path.exists(os.path.join(d, "my.midi.file.txt")))
+
+    def test_note_negative_octave(self):
+        self.assertEqual((Note(0).degree, Note(0).octave), ("C", "-1"))
 
 
 class TestCustomFretCount(unittest.TestCase):

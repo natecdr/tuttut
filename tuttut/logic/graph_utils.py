@@ -166,12 +166,13 @@ def viterbi(V, Tm, Em, initial_distribution=None):
 
     initial_distribution = initial_distribution if initial_distribution is not None else np.full(M, 1 / M)
 
-    log_Tm = np.log(Tm)
-    log_Em = np.log(Em)
+    with np.errstate(divide="ignore"):
+        log_Tm = np.log(Tm)
+        log_Em = np.log(Em)
 
-    omega = np.zeros((T, M))
-    omega[0, :] = np.log(initial_distribution) + log_Em[:, V[0]]
-
+        omega = np.zeros((T, M))
+        omega[0, :] = np.log(initial_distribution) + log_Em[:, V[0]]
+    
     prev = np.zeros((T - 1, M))
 
     for t in range(1, T):

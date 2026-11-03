@@ -12,250 +12,267 @@ from tuttut.logic.difficulty import compute_isolated_path_difficulty
 from tuttut.logic.graph_utils import difficulties_to_probabilities, expand_emission_matrix, build_transition_matrix, viterbi
 
 class Tab:
-  """Tab object."""
-  def __init__(self, name, tuning, midi, output_dir = None, weights = None):
-    """Constructor for the Tab object.
+	"""Tab object."""
+	def __init__(self, name, tuning, midi, output_dir = None, weights = None):
+		"""Constructor for the Tab object.
 
-    Args:
-        name (string): Name of the tab
-        tuning (Tuning): Tuning of the instrument for the tab
-        midi (pretty_midi.PrettyMIDI): The MIDI we're trying to convert to tab
-    """
-    self.name = name
-    self.tuning = tuning
-    self.time_signatures = midi.time_signature_changes if len(midi.time_signature_changes) > 0 else [TimeSignature(4, 4, 0)]
-    self.nstrings = len(tuning.strings)
-    self.measures = []
-    self.midi = midi
-    self.fretboard = Fretboard(tuning)
-    self.weights = {"b":1, "height":1, "length":1, "n_changed_strings":1} if weights is None else weights
-    self.timeline = self.build_timeline()
-    self.output_dir = output_dir
-    
-    self.populate()
-    
-    self.tab = self.gen_tab()
+		Args:
+				name (string): Name of the tab
+				tuning (Tuning): Tuning of the instrument for the tab
+				midi (pretty_midi.PrettyMIDI): The MIDI we're trying to convert to tab
+		"""
+		self.name = name
+		self.tuning = tuning
+		self.time_signatures = midi.time_signature_changes if len(midi.time_signature_changes) > 0 else [TimeSignature(4, 4, 0)]
+		self.nstrings = len(tuning.strings)
+		self.measures = []
+		self.midi = midi
+		self.fretboard = Fretboard(tuning)
+		self.weights = {"b":1, "height":1, "length":1, "n_changed_strings":1} if weights is None else weights
+		self.timeline = self.build_timeline()
+		self.output_dir = output_dir
+		
+		self.populate()
+		
+		self.tab = self.gen_tab()
 
-  def populate(self):
-    """Populates tab with Measures."""
-    for i, time_signature in enumerate(self.time_signatures):
-      measure_length_in_ticks = measure_length_ticks(self.midi, time_signature)
-      
-      time_sig_start = self.midi.time_to_tick(time_signature.time)
-      
-      time_sig_end = self.time_signatures[i+1].time if i < len(self.time_signatures)-1 else self.midi.get_end_time()
-      time_sig_end = self.midi.time_to_tick(time_sig_end)
-      
-      measure_ticks = np.arange(time_sig_start, time_sig_end, measure_length_in_ticks) #List of all the measure start ticks (ex : [0, 1024, 2048])
-      
-      for imeasure, measure_start in enumerate(measure_ticks):
-        measure_end = min(measure_start + measure_length_in_ticks, time_sig_end)
-        self.measures.append(Measure(self, imeasure, time_signature, measure_start, measure_end))
+	def populate(self):
+		"""Populates tab with Measures."""
+		for i, time_signature in enumerate(self.time_signatures):
+			measure_length_in_ticks = measure_length_ticks(self.midi, time_signature)
+			
+			time_sig_start = self.midi.time_to_tick(time_signature.time)
+			
+			time_sig_end = self.time_signatures[i+1].time if i < len(self.time_signatures)-1 else self.midi.get_end_time()
+			time_sig_end = self.midi.time_to_tick(time_sig_end)
+			
+			measure_ticks = np.arange(time_sig_start, time_sig_end, measure_length_in_ticks) #List of all the measure start ticks (ex : [0, 1024, 2048])
+			
+			for imeasure, measure_start in enumerate(measure_ticks):
+				measure_end = min(measure_start + measure_length_in_ticks, time_sig_end)
+				self.measures.append(Measure(self, imeasure, time_signature, measure_start, measure_end))
+	
+	def build_timeline(self):
+		timeline = defaultdict(dict)
+		non_drum_instruments = get_non_drum(self.midi.instruments)
+		
+		#Notes
+		for instrument in non_drum_instruments:
+			notes = instrument.notes
+			notes.sort(key=lambda x: x.start)
+			
+			assert [note.start for note in notes] == sorted([note.start for note in notes]) #Are notes sorted by time
+			
+			for note in notes:
+				note_tick = self.midi.time_to_tick(note.start)
+				
+				if "notes" in timeline[note_tick]:
+					timeline[note_tick]["notes"].append(note)
+				else:
+					timeline[note_tick]["notes"] = [note]
+		
+		#Time signatures
+		for time_signature in self.time_signatures:
+			time_signature_tick = self.midi.time_to_tick(time_signature.time)
+			timeline[time_signature_tick]["time_signature"] = time_signature
+			
+		return timeline
+
+	def gen_tab(self):
+		"""Generates the tab data and the fingerings."""
+		tab = {"tuning": [string.pitch for string in self.tuning.strings], "measures": []}
+
+		notes_vocabulary, notes_sequence, fingerings_vocabulary, emission_matrix, initial_probabilities = (
+			self._build_hmm_inputs(tab)
+		)
+		
+		final_sequence = self._run_viterbi(
+			notes_sequence, fingerings_vocabulary, emission_matrix, initial_probabilities
+		)
+
+		return self.populate_tab_notes(tab, final_sequence)
+
+	def _build_hmm_inputs(self, tab):
+		"""Iterates measures to build the HMM vocabulary, observation sequence, and emission matrix.
+
+		Args:
+				tab (dict): Tab template whose "measures" list is populated as a side effect.
+
+		Returns:
+				tuple: (notes_vocabulary, notes_sequence, fingerings_vocabulary,
+								emission_matrix, initial_probabilities)
+		"""
+		notes_vocabulary = []
+		notes_sequence = []
+		fingerings_vocabulary = []
+		emission_matrix = np.array([])
+		initial_probabilities = None
+
+		for measure in self.measures:
+			res_measure = {"events": []}
+			for event_tick, event_types in measure.timeline.items():
+				event = {
+					"time": self.midi.tick_to_time(int(event_tick)),
+					"time_ticks": int(event_tick),
+					"measure_timing": (event_tick - measure.measure_start) / measure.duration_ticks,
+				}
+
+				if "time_signature" in event_types:
+					ts = event_types["time_signature"]
+					event["time_signature_change"] = [ts.numerator, ts.denominator]
+
+				if "notes" in event_types:
+					event["notes"] = []
+					notes = event_types["notes"]
+					notes_pitches = tuple(
+						sorted(set(note.pitch for note in notes))
+					)
+					
+					if notes_pitches not in notes_vocabulary:
+						notes = self.fretboard.fix_oob_notes([Note(p) for p in notes_pitches], preserve_highest_note=False)
+						fingering_options = self.fretboard.get_fingerings_with_reduction(notes)
+
+						if len(fingering_options) > 0:
+							notes_vocabulary.append(notes_pitches)
+							fingerings_vocabulary += fingering_options
+							if initial_probabilities is None:
+								isolated = [compute_isolated_path_difficulty(self.fretboard.positions, p, self.tuning) for p in fingering_options]
+								initial_probabilities = difficulties_to_probabilities(isolated)
+							emission_matrix = expand_emission_matrix(emission_matrix, fingering_options)
+
+					if notes_pitches in notes_vocabulary:
+						notes_sequence.append(notes_vocabulary.index(notes_pitches))
+					else:
+						notes_sequence.append(-1)
+
+				res_measure["events"].append(event)
+			tab["measures"].append(res_measure)
+
+		return notes_vocabulary, notes_sequence, fingerings_vocabulary, emission_matrix, initial_probabilities
+
+	def _run_viterbi(self, notes_sequence, fingerings_vocabulary, emission_matrix, initial_probabilities):
+		"""Builds the transition matrix and runs Viterbi to find the optimal fingering sequence.
+
+		Args:
+				notes_sequence (list): Observation indices into the notes vocabulary.
+				fingerings_vocabulary (list): All fingerings that appear in the piece.
+				emission_matrix (np.ndarray): Emission matrix.
+				initial_probabilities (np.ndarray): Initial state distribution.
+
+		Returns:
+				List: Sequence of fingerings (one per observed chord).
+		"""
+		valid = [i for i, obs in enumerate(notes_sequence) if obs != -1]
+		result = [()] * len(notes_sequence) 
+		
+		if not valid:
+			return result
   
-  def build_timeline(self):
-    timeline = defaultdict(dict)
-    non_drum_instruments = get_non_drum(self.midi.instruments)
-    
-    #Notes
-    for instrument in non_drum_instruments:
-      notes = instrument.notes
-      notes.sort(key=lambda x: x.start)
-      
-      assert [note.start for note in notes] == sorted([note.start for note in notes]) #Are notes sorted by time
-      
-      for note in notes:
-        note_tick = self.midi.time_to_tick(note.start)
-        
-        if "notes" in timeline[note_tick]:
-          timeline[note_tick]["notes"].append(note)
-        else:
-          timeline[note_tick]["notes"] = [note]
-    
-    #Time signatures
-    for time_signature in self.time_signatures:
-      time_signature_tick = self.midi.time_to_tick(time_signature.time)
-      timeline[time_signature_tick]["time_signature"] = time_signature
-      
-    return timeline
+		transition_matrix = build_transition_matrix(
+			self.fretboard.positions, fingerings_vocabulary, self.weights, self.tuning
+		)
+		initial_probabilities = np.hstack((
+			initial_probabilities,
+			np.zeros(len(transition_matrix) - len(initial_probabilities)),
+		))
 
-  def gen_tab(self):
-    """Generates the tab data and the fingerings."""
-    tab = {"tuning": [string.pitch for string in self.tuning.strings], "measures": []}
+		observations = [notes_sequence[i] for i in valid]
+		sequence_indices = viterbi(observations, transition_matrix, emission_matrix, initial_probabilities)
+  
+		for i, s in zip(valid, sequence_indices):
+			result[i] = fingerings_vocabulary[s]
+   
+		return result
 
-    notes_vocabulary, notes_sequence, fingerings_vocabulary, emission_matrix, initial_probabilities = (
-        self._build_hmm_inputs(tab)
-    )
+	def populate_tab_notes(self, tab, sequence):
+		"""Populates the tab template with notes and their fingerings.
 
-    final_sequence = self._run_viterbi(
-        notes_sequence, fingerings_vocabulary, emission_matrix, initial_probabilities
-    )
+		Args:
+				tab (dict): The tab template without notes
+				sequence (list): Sequence of notes and fingerings to be used
 
-    return self.populate_tab_notes(tab, final_sequence)
+		Returns:
+				dict: The final tab with notes and fingerings
+		"""
+		ievent = 0
+		for measure in tab["measures"]:
+			for event in measure["events"]:
+				if "notes" not in event:
+					continue
+				
+				for path_note in sequence[ievent]:
+					string, fret = self.fretboard.positions[path_note]
+					event["notes"].append({
+						"degree": path_note.degree,
+						"octave": path_note.octave,
+						"string": string,
+						"fret": fret
+						})
+				ievent += 1
+				
+		return tab
 
-  def _build_hmm_inputs(self, tab):
-    """Iterates measures to build the HMM vocabulary, observation sequence, and emission matrix.
+	def to_string(self):
+		"""Generates the text for the ascii tabs.
 
-    Args:
-        tab (dict): Tab template whose "measures" list is populated as a side effect.
+		Returns:
+				list: List containing tab text for each guitar string
+		"""
+		res = []
+		for string in self.tuning.strings:
+			header = string.degree
+			header += "||" if len(header)>1 else " ||"
+			res.append(header)
 
-    Returns:
-        tuple: (notes_vocabulary, notes_sequence, fingerings_vocabulary,
-                emission_matrix, initial_probabilities)
-    """
-    notes_vocabulary = []
-    notes_sequence = []
-    fingerings_vocabulary = []
-    emission_matrix = np.array([])
-    initial_probabilities = None
+		for measure in self.tab["measures"]:
+			for ievent, event in enumerate(measure["events"]):
+				if "notes" in event:
+					for note in event["notes"]:
+						string, fret = note["string"], note["fret"]
+						res[string] += str(fret)
 
-    for measure in self.measures:
-      res_measure = {"events": []}
-      for event_tick, event_types in measure.timeline.items():
-        event = {
-          "time": self.midi.tick_to_time(int(event_tick)),
-          "time_ticks": int(event_tick),
-          "measure_timing": (event_tick - measure.measure_start) / measure.duration_ticks,
-        }
+					next_event_timing = measure["events"][ievent + 1]["measure_timing"] if ievent < len(measure["events"]) - 1 else 1.0
+					dashes_to_add = max(1, math.floor((next_event_timing - event["measure_timing"]) * 16))
 
-        if "time_signature" in event_types:
-          ts = event_types["time_signature"]
-          event["time_signature_change"] = [ts.numerator, ts.denominator]
+					res = fill_measure_str(res)
 
-        if "notes" in event_types:
-          event["notes"] = []
-          notes = event_types["notes"]
-          notes_pitches = tuple(set(note.pitch for note in notes))
-          notes = self.fretboard.fix_oob_notes([Note(p) for p in notes_pitches], preserve_highest_note=False)
-          note_options = self.fretboard.get_note_options(notes)
+					for istring in range(self.nstrings):
+						res[istring] += "-" * dashes_to_add
 
-          if notes_pitches not in notes_vocabulary:
-            fingering_options = self.fretboard.get_possible_fingerings(note_options)
-            if len(fingering_options) > 0:
-              notes_vocabulary.append(notes_pitches)
-              fingerings_vocabulary += fingering_options
-              if initial_probabilities is None:
-                isolated = [compute_isolated_path_difficulty(self.fretboard.positions, p, self.tuning) for p in fingering_options]
-                initial_probabilities = difficulties_to_probabilities(isolated)
-              emission_matrix = expand_emission_matrix(emission_matrix, fingering_options)
+			for istring in range(self.nstrings):
+				res[istring] += "|"
 
-          if notes_pitches in notes_vocabulary:
-            notes_sequence.append(notes_vocabulary.index(notes_pitches))
-          else:
-            notes_sequence.append(-1)
+		return res
 
-        res_measure["events"].append(event)
-      tab["measures"].append(res_measure)
+	def to_json(self):
+		"""Exports the tab to a json file."""
+		if self.tab is None:
+			return
 
-    return notes_vocabulary, notes_sequence, fingerings_vocabulary, emission_matrix, initial_probabilities
+		json_object = json.dumps(self.tab, indent=4)
 
-  def _run_viterbi(self, notes_sequence, fingerings_vocabulary, emission_matrix, initial_probabilities):
-    """Builds the transition matrix and runs Viterbi to find the optimal fingering sequence.
+		output_dir = Path("./json" if self.output_dir is None else self.output_dir)
+		output_dir.mkdir(parents=True, exist_ok=True)
+		with open(output_dir / f"{self.name}.json", "w") as outfile:
+			outfile.write(json_object)
 
-    Args:
-        notes_sequence (list): Observation indices into the notes vocabulary.
-        fingerings_vocabulary (list): All fingerings that appear in the piece.
-        emission_matrix (np.ndarray): Emission matrix.
-        initial_probabilities (np.ndarray): Initial state distribution.
+	def to_ascii(self):
+		"""Exports the tab to a text file."""
+		if self.tab is None:
+			return
 
-    Returns:
-        np.ndarray: Sequence of fingerings (one per observed chord).
-    """
-    transition_matrix = build_transition_matrix(
-        self.fretboard.positions, fingerings_vocabulary, self.weights, self.tuning
-    )
-    initial_probabilities = np.hstack((
-        initial_probabilities,
-        np.zeros(len(transition_matrix) - len(initial_probabilities)),
-    ))
-    sequence_indices = viterbi(notes_sequence, transition_matrix, emission_matrix, initial_probabilities)
-    return np.array(fingerings_vocabulary, dtype=object)[sequence_indices]
+		notes_str = self.to_string()
 
-  def populate_tab_notes(self, tab, sequence):
-    """Populates the tab template with notes and their fingerings.
+		output_dir = Path("./tabs" if self.output_dir is None else self.output_dir)
+		output_dir.mkdir(parents=True, exist_ok=True)
+		with open(output_dir / f"{self.name}.txt", "w") as file:
+			for string_notes in notes_str:
+				file.write(string_notes + "\n")
 
-    Args:
-        tab (dict): The tab template without notes
-        sequence (list): Sequence of notes and fingerings to be used
+	def __repr__(self):
+		"""Used to print out the tab.
 
-    Returns:
-        dict: The final tab with notes and fingerings
-    """
-    ievent = 0
-    for measure in tab["measures"]:
-      for event in measure["events"]:
-        if "notes" not in event:
-          continue
-        
-        for path_note in sequence[ievent]:
-          string, fret = self.fretboard.positions[path_note]
-          event["notes"].append({
-            "degree": path_note.degree,
-            "octave": path_note.octave,
-            "string": string,
-            "fret": fret
-            })
-        ievent += 1
-        
-    return tab
-
-  def to_string(self):
-    """Generates the text for the ascii tabs.
-
-    Returns:
-        list: List containing tab text for each guitar string
-    """
-    res = []
-    for string in self.tuning.strings:
-      header = string.degree
-      header += "||" if len(header)>1 else " ||"
-      res.append(header)
-
-    for measure in self.tab["measures"]:
-      for ievent, event in enumerate(measure["events"]):
-        if "notes" in event:
-          for note in event["notes"]:
-            string, fret = note["string"], note["fret"]
-            res[string] += str(fret)
-
-          next_event_timing = measure["events"][ievent + 1]["measure_timing"] if ievent < len(measure["events"]) - 1 else 1.0
-          dashes_to_add = max(1, math.floor((next_event_timing - event["measure_timing"]) * 16))
-
-          res = fill_measure_str(res)
-
-          for istring in range(self.nstrings):
-            res[istring] += "-" * dashes_to_add
-
-      for istring in range(self.nstrings):
-        res[istring] += "|"
-
-    return res
-
-  def to_json(self):
-    """Exports the tab to a json file."""
-    if self.tab is None:
-      return
-
-    json_object = json.dumps(self.tab, indent=4)
-
-    with open(os.path.join("json", self.name + ".json"), "w") as outfile:
-        outfile.write(json_object)
-
-  def to_ascii(self):
-    """Exports the tab to a text file."""
-    if self.tab is None:
-      return
-
-    notes_str = self.to_string()
-
-    output_dir = "./tabs" if self.output_dir is None else self.output_dir
-    with open(Path(output_dir, self.name).with_suffix(".txt"),"w") as file:
-      for string_notes in notes_str:
-        file.write(string_notes + "\n")
-
-  def __repr__(self):
-    """Used to print out the tab.
-
-    Returns:
-        str: String representation of the tab.
-    """
-    return self.tab
+		Returns:
+				str: String representation of the tab.
+		"""
+		return self.tab

@@ -96,6 +96,9 @@ class Fretboard:
         Returns:
             list: List of fingering tuples
         """
+        if len(note_options) == 0 or len(note_options) > self.nstrings:
+            return []  
+        
         cache_key = frozenset(opts[0].pitch for opts in note_options)
         if cache_key in self._fingering_cache:
             return self._fingering_cache[cache_key]
@@ -114,7 +117,22 @@ class Fretboard:
                         fingerings.append(path)
 
         self._fingering_cache[cache_key] = fingerings
+        
         return fingerings
+    
+    def get_fingerings_with_reduction(self, notes):
+        """Returns fingerings for a chord, dropping inner notes until it is playable.
+        Keeps the bass (lowest) and melody (highest) notes as long as possible."""
+        notes = sorted(notes, key=lambda n: n.pitch)
+        while notes:
+            fingerings = self.get_possible_fingerings(self.get_note_options(notes))
+            if fingerings:
+                return fingerings
+            if len(notes) > 2:
+                notes.pop(1)   # drop the lowest inner note
+            else:
+                notes.pop(0)   # last resort: keep the melody note only
+        return []
     
     def fix_oob_notes(self, notes, preserve_highest_note = False):
         min_possible_pitch, max_possible_pitch = self.tuning.get_pitch_bounds()

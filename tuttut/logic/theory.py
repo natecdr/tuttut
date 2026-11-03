@@ -15,8 +15,8 @@ class Note:
 
     self.pitch = pitch
     self.name = note_number_to_name(pitch)
-    self.degree = self.name[:-1]
-    self.octave = self.name[-1]
+    self.degree = self.name.rstrip("-0123456789")
+    self.octave = self.name[len(self.degree):]
 
   def same_pitch_as(self, other: "Note") -> bool:
     """Returns True if two Note instances represent the same MIDI pitch.

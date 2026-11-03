@@ -4,6 +4,10 @@
 Converts MIDI files to guitar tabs.<br />
 It can handle any tuning for any number of strings, and will do the arrangement accordingly.
 
+## Requirements
+Python 3.9+.
+On Linux, tkinter needs `sudo apt install python3-tk`
+
 ## Using the tool
 
 <p align="center">
@@ -12,7 +16,7 @@ It can handle any tuning for any number of strings, and will do the arrangement 
 
 Install the repo with ```pip install tuttut```
 
-To run it, execute the command ```tuttut```
+To run it with GUI, execute the command ```tuttut```
 
 Select the MIDI file you wish to convert.
 Select the folder in which the tab will be exported.
@@ -21,16 +25,13 @@ Press Tabify.
 Done!
 
 You can change the tuning in the settings (Top right corner gear icon), there are even presets for common instruments. <br />
-Also, disclaimer : The tool works best for single-channel, single-instrument MIDI files, it might spit out some janky stuff if you throw multi-channel complicated files at it.
+The tool works best for single-channel, single-instrument MIDI files, it might spit out some janky stuff if you throw multi-channel complicated files at it.
 
 ### How to run using CLI (no GUI)
 
 If file selector does not work properly for you on macOS, try CLI:
-1. Create `./midis` and `./tabs` folders.
-2. Put your MIDI file to `./midis/masterpiece.mid`.
-3. Run `uv run --with pretty_midi --with tuttut -- python -m tuttut.midi_tabs_cli masterpiece` (MIDI file goes without an extension in CLI). [`uv` Python package manager](https://docs.astral.sh/uv/getting-started/installation/) has to be installed.
-
-As a result, you will get `./tabs/masterpiece.txt`.
+1. Run tuttut-cli \<song>.mid \<output_dir>
+2. If all went well, your new tab should be in \<output_dir>
 
 ## Expected results
 
@@ -55,6 +56,10 @@ The algorithm tries to approximate as well as possible the way a human would arr
 The tool can't handle complicated multi-channel MIDI files, but it's not what it's made for.
 
 Slides, Hammer-on, Pull-offs and other advanced techniques are not modeled.
+
+## Troubleshooting
+Run tuttut from a terminal and paste the error in your issue.
+
 
 # Behind the tool
 

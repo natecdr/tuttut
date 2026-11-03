@@ -1,41 +1,34 @@
-import platform
-import sys
-try:
-    from tkinter import Tk
-except ImportError:
+def _tk_root():
     try:
-        from Tkinter import Tk
-    except ImportError:
-        # If no versions of tkinter exist (most likely linux) provide a message
-        if sys.version_info.major < 3:
-            print("Error: Tkinter not found")
-            print('For linux, you can install Tkinter by executing: "sudo apt-get install python-tk"')
-            sys.exit(1)
-        else:
-            print("Error: tkinter not found")
-            print('For linux, you can install tkinter by executing: "sudo apt-get install python3-tk"')
-            sys.exit(1)
-try:
-    from tkinter.filedialog import askopenfilename, askdirectory, askopenfilenames, asksaveasfilename
-except ImportError:
-    from tkFileDialog import askopenfilename, askdirectory, askopenfilenames, asksaveasfilename
+        from tkinter import Tk
+    except ImportError as e:
+        raise RuntimeError(
+            "tkinter is not installed. Linux: sudo apt install python3-tk. "
+            "Windows/macOS: install Python from python.org"
+        ) from e
+        
+    root = Tk()
+    root.withdraw()
+    root.wm_attributes('-topmost', 1)
+    return root
 
 def ask_file():
-    """ Demande un ou des fichiers à l'utilisateur """
-    root = Tk()
-    root.withdraw()
-    root.wm_attributes('-topmost', 1)
-    file_path = askopenfilename(parent=root)
-    root.update()
+    root = _tk_root()
+    from tkinter.filedialog import askopenfilename
+    
+    try:
+        path = askopenfilename(parent=root, filetypes=[("MIDI files", "*.mid *.midi"), ("All files", "*.*")])
+    finally:
+        root.destroy()
+        
+    return path or None
 
-    return file_path if bool(file_path) else None
 
 def ask_folder():
-    """ Demande un dossier à l'utilisateur """
-    root = Tk()
-    root.withdraw()
-    root.wm_attributes('-topmost', 1)
-    folder = askdirectory(parent=root)
-    root.update()
-
-    return folder if bool(folder) else None
+    root = _tk_root()
+    from tkinter.filedialog import askdirectory
+    try:
+        folder = askdirectory(parent=root)
+    finally:
+        root.destroy()
+    return folder or None
