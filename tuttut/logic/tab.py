@@ -136,8 +136,8 @@ class Tab:
 							notes_vocabulary.append(notes_pitches)
 							fingerings_vocabulary += fingering_options
 							if initial_probabilities is None:
-								isolated = [compute_isolated_path_difficulty(self.fretboard.positions, p, self.tuning) for p in fingering_options]
-								initial_probabilities = difficulties_to_probabilities(isolated)
+								easiness = [1 / compute_isolated_path_difficulty(self.fretboard.positions, p, self.tuning) for p in fingering_options]
+								initial_probabilities = difficulties_to_probabilities(easiness)
 							emission_matrix = expand_emission_matrix(emission_matrix, fingering_options)
 
 					if notes_pitches in notes_vocabulary:

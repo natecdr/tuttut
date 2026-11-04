@@ -286,6 +286,11 @@ class TestTabEdgeCases(unittest.TestCase):
     def test_note_negative_octave(self):
         self.assertEqual((Note(0).degree, Note(0).octave), ("C", "-1"))
 
+    def test_first_note_prefers_lowest_fret(self):
+        """A lone note is placed at its easiest position, not its hardest."""
+        tab = Tab("t", Tuning(), _make_midi([(60, 0.0, 0.5)]))
+        notes = [n for m in tab.tab["measures"] for e in m["events"] for n in e.get("notes", [])]
+        self.assertEqual((notes[0]["string"], notes[0]["fret"]), (1, 1))
 
 class TestCustomFretCount(unittest.TestCase):
     def test_nfrets_bounds_fretboard_positions(self):
